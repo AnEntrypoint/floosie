@@ -1,3 +1,6 @@
+### 0.4.2 — 2026-04-14
+- Full validation pass 2: all 0.3.0 codec types (numeric, bigint, complex, jsonHeaderCodec binary-envelope types, NDJSON structured types), registry inspect/snapshot/deregister, stdio length-prefix framing, ACP source/sink lifecycle (handler registration ordering, abort termination), operator chain composition (gate+limit, scan, mux, batch, parallel, distinct, withBackpressure)
+
 ### 0.4.1 — 2026-04-14
 - Fix detectMime: MP4 ftyp box detection now handles variable box sizes (any 4-byte length prefix followed by ftyp at offset 4)
 - Full validation pass: createProcessor lifecycle, registry, pipeline composition, framing, operators, error paths all verified
