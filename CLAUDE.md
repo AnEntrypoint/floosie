@@ -14,6 +14,25 @@ Universal stream processing platform. Pipe anything to anything.
 - `src/acp.ts` — `acpSource()`, `acpSink()`, `acpProcessor()`: ACP AgentSideConnection as stream source/sink
 - `src/index.ts` — re-exports all public API
 
+## Key Technical Facts
+
+### sflow Type Union
+`sflow` is `ReadableStream<T> & AsyncIterableIterator<T> & BaseFlow<T>` — works with both Web Streams API and ES6 async iteration.
+
+### FlowSource Inputs
+Accepts: Promise, Iterable, AsyncIterable, `() => Iterable/AsyncIterable`, ReadableLike, ReadableStream.
+
+### Terminal Methods
+`sflow` provides: `.toArray()`, `.run()`, `.to(writable)`, `.toEnd()`, `.toNil()`, `.toCount()`, `.toFirst()` — one must be called to consume the stream.
+
+### ProcessorHandle.pipe()
+Composes transforms (not streams) — upstream input is preserved and both transforms are fused into one `createProcessor` call.
+
+### Dependencies & TypeScript
+- **@agentclientprotocol/sdk v0.19.0** has TS 5.x export ambiguity — requires `skipLibCheck: true` in tsconfig
+- **exactOptionalPropertyTypes: true** requires conditional spread: `meta !== undefined ? { ...o, meta } : { ...o }`
+- **Node v23.10** — native ESM, Web Streams built-in
+
 ## Changes
 
 ### 0.1.0 — 2026-04-14
