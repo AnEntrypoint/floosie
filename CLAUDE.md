@@ -18,6 +18,8 @@ Universal stream processing platform. Pipe anything to anything.
 - `src/operators.ts` — `mux`, `split`, `gate`, `scan`, `zip`, `withBackpressure`, `batch`, `window`, `throttle`, `debounce`, `take`, `drop`, `distinct`, `parallel`
 - `src/registry.ts` — global `ProcessorState` map; `inspect()` / `snapshot()` for observability
 - `src/stdio.ts` — `stdioProcessor()`: reads stdin, writes stdout; framing auto-selected by chunk type
+- `src/machine.ts` — `ProcessorMachine` xstate v5 state machine: idle/running/error/stopped lifecycle
+- `src/streams.ts` — `splitStream(iter, onOut?)`: fan-out AsyncIterable into `{stdout, stderr}`; error/signal → stderr; onOut callback called per-chunk for output counting; drain uses index-pointer + splice for O(1) access
 - `src/acp.ts` — `acpSource()`, `acpSink()`, `acpProcessor()`: ACP AgentSideConnection as stream source/sink
 - `src/index.ts` — re-exports all public API
 
