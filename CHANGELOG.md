@@ -1,3 +1,12 @@
+### 0.5.0 — 2026-04-14
+- Replace hand-rolled signature table with file-type (183 formats: ELF, Mach-O, SQLite, zstd, lz4, fonts, and 170+ more)
+- Add detectFile(Uint8Array): Promise<FileInfo> — rich async detection with mime, ext, charset, description
+- Add text heuristics layer: shebang (python/node/ruby/perl/php/sh), XML, HTML, JSON, YAML, PEM, encoding detection
+- Add BOM detection (UTF-32 LE/BE, UTF-16 LE/BE, UTF-8) — prevents UTF-16 BOM misdetection as audio/mpeg
+- Add binary heuristic: >30% high bytes → application/octet-stream
+- Keep detectMime(Uint8Array): string sync for codec decode path (backward compat)
+- Export FileInfo type and detectFile from index.ts
+
 ### 0.4.2 — 2026-04-14
 - Full validation pass 2: all 0.3.0 codec types (numeric, bigint, complex, jsonHeaderCodec binary-envelope types, NDJSON structured types), registry inspect/snapshot/deregister, stdio length-prefix framing, ACP source/sink lifecycle (handler registration ordering, abort termination), operator chain composition (gate+limit, scan, mux, batch, parallel, distinct, withBackpressure)
 

@@ -62,6 +62,7 @@ export { pipe, connect, source, sink } from "./pipeline.js";
 export type { ProcessorState, ProcessorStatus } from "./registry.js";
 export { registry } from "./registry.js";
 
-export { detectMime } from "./mime.js";
+export type { FileInfo } from "./mime.js";
+export { detectMime, detectFile } from "./mime.js";
 
 export { mux, split, gate, scan, zip, withBackpressure, batch, window, throttle, debounce, take, drop, distinct, parallel } from "./operators.js";
