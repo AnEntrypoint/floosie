@@ -1,3 +1,9 @@
+### 0.6.1 — 2026-04-14
+- Perf: move chunksIn/chunksOut counters out of xstate context to plain mutable objects on registry Entry
+- Eliminates 2x actor.send() per chunk (TICK_IN/TICK_OUT events removed from ProcessorMachine)
+- Throughput: 90k → 303k chunks/sec (3.4x improvement)
+- xstate used only for lifecycle transitions: START/STOP/ERROR/COMPLETE/RESET
+
 ### 0.6.0 — 2026-04-14
 - Add xstate v5 ProcessorMachine (idle/running/error/stopped) — replaces manual status mutation
 - Registry stores Actor per processor; status and context read from actor snapshots

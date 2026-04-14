@@ -126,9 +126,9 @@ export function createProcessor<I extends Chunk, O extends Chunk>(
 }
 
 async function* trackInput(source: AsyncIterable<Chunk>, state: ProcessorState): AsyncIterable<Chunk> {
-  for await (const chunk of source) { state.send({ type: "TICK_IN" }); yield chunk; }
+  for await (const chunk of source) { state.incIn(); yield chunk; }
 }
 
 async function* trackOutput<O extends Chunk>(source: AsyncIterable<O>, state: ProcessorState): AsyncIterable<O> {
-  for await (const chunk of source) { state.send({ type: "TICK_OUT" }); yield chunk; }
+  for await (const chunk of source) { state.incOut(); yield chunk; }
 }
