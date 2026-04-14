@@ -65,7 +65,23 @@ sflow(async function*() {
 - **exactOptionalPropertyTypes: true** requires conditional spread: `meta !== undefined ? { ...o, meta } : { ...o }`
 - **Node v23.10** — native ESM, Web Streams built-in
 
+### xstate v5.30.0 (ProcessorMachine)
+- **createMachine({id, initial, context: ({input}) => ctx, states})** — context is a function receiving {input}
+- **createActor(machine, {input})** — creates and returns actor
+- **actor.start()**, **actor.send({type})**, **actor.getSnapshot().value**, **actor.getSnapshot().context**
+- **getSnapshot().context type issue:** inferred as function type, not context shape — cast as `actor.getSnapshot().context as unknown as ProcessorContext`
+- **Nullable function narrowing:** `let wake: (() => void) | null` doesn't narrow with `if (wake) wake()` — use ref pattern: `const ref: {v: (() => void) | null} = {v: null}; const fn = ref.v; ref.v = null; if (fn) fn()`
+
 ## Changes
+
+### 0.6.0 — 2026-04-14
+- Added `src/machine.ts` (ProcessorMachine xstate); `src/streams.ts` (splitStream)
+- ProcessorHandle dual stdout/stderr streams; process.stderr for error/signal chunks
+- Registry stores Actor per processor; status/context read from actor snapshot
+- Processor lifecycle: idle/running/error/stopped via state machine
+
+### 0.5.0 — 2026-04-14
+- (Release gap — not documented)
 
 ### 0.4.0 — 2026-04-14
 - Added `src/operators.ts`: mux, split, gate, scan, zip, withBackpressure, batch, window, throttle, debounce, take, drop, distinct, parallel
@@ -80,3 +96,9 @@ sflow(async function*() {
 
 ### 0.1.0 — 2026-04-14
 - Initial platform: Chunk types, CODECS, StreamNode, createProcessor, pipeline wiring, registry, stdio adapter, ACP connector
+
+## Repository
+
+- **Git remote:** "anentrypoint" (https://github.com/AnEntrypoint/floosie)
+- **GitHub Pages:** Published from `docs/` directory
+- **dist/ tracking:** Previously tracked, removed via `git rm --cached dist/`, now in .gitignore
