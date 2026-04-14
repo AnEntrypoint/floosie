@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>floosie — universal stream processing</title>
+  <link rel="stylesheet" href="vendor/rippleui.css" />
+  <script type="importmap">{"imports":{"webjsx":"./vendor/webjsx.js"}}</script>
+  <style>
+    body { background: #0d1117; color: #e6edf3; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
+    .hero { padding: 5rem 2rem 3rem; text-align: center; background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border-bottom: 1px solid #30363d; }
+    .hero h1 { font-size: 4rem; font-weight: 800; margin: 0 0 1rem; letter-spacing: -2px; background: linear-gradient(135deg, #58a6ff, #bc8cff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { font-size: 1.25rem; color: #8b949e; max-width: 600px; margin: 0 auto 2rem; line-height: 1.6; }
+    .badge-row { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
+    .badge { background: #21262d; border: 1px solid #30363d; border-radius: 9999px; padding: 0.25rem 0.75rem; font-size: 0.75rem; color: #8b949e; }
+    .section { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem; }
+    .section h2 { font-size: 1.75rem; font-weight: 700; color: #e6edf3; margin-bottom: 1.5rem; border-bottom: 1px solid #21262d; padding-bottom: 0.75rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; }
+    .chip { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 0.4rem 0.6rem; font-size: 0.75rem; font-family: ui-monospace, monospace; color: #79c0ff; text-align: center; }
+    .chip.cat-media { border-color: #388bfd33; color: #79c0ff; }
+    .chip.cat-text { border-color: #3fb95033; color: #56d364; }
+    .chip.cat-net { border-color: #d29922aa; color: #e3b341; }
+    .chip.cat-obs { border-color: #da3633aa; color: #f85149; }
+    .chip.cat-ml { border-color: #bc8cff55; color: #d2a8ff; }
+    .chip.cat-crypto { border-color: #ff7b7255; color: #ffa198; }
+    .chip.cat-num { border-color: #79c0ff33; color: #79c0ff; }
+    .chip.cat-doc { border-color: #56d36433; color: #56d364; }
+    .op-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .op-table th { text-align: left; padding: 0.6rem 1rem; border-bottom: 2px solid #30363d; color: #8b949e; font-weight: 600; }
+    .op-table td { padding: 0.5rem 1rem; border-bottom: 1px solid #21262d; }
+    .op-table td:first-child { font-family: ui-monospace, monospace; color: #79c0ff; }
+    .code-block { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 1.5rem; overflow-x: auto; }
+    .code-block pre { margin: 0; font-family: ui-monospace, monospace; font-size: 0.85rem; color: #e6edf3; line-height: 1.6; }
+    .kw { color: #ff7b72; } .fn { color: #d2a8ff; } .str { color: #a5d6ff; } .cmt { color: #8b949e; }
+    footer { border-top: 1px solid #21262d; padding: 2rem; text-align: center; color: #8b949e; font-size: 0.85rem; }
+    footer a { color: #58a6ff; text-decoration: none; }
+    #debug-panel { display: none; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { createElement as h, applyDiff, Fragment } from 'webjsx';
+
+const CHUNKS = {
+  media:  ['binary','image','video','audio','pdf','archive','wasm','font','onnx','safetensors','epub','docx','xlsx','pptx','gltf','qrcode'],
+  text:   ['text','json','ndjson','csv','xml','yaml','markdown','html','sql','toml','ini','jsonschema','avroschema','sourcemap','shader','obj','subtitle','playlist','graphml'],
+  net:    ['http-request','http-response','websocket','sse','rpc','event','span','metric','log','command','socketio','webtransport','envelope','ack','nack'],
+  obs:    ['error','signal','null','delta','token','embedding'],
+  ml:     ['tensor','timeseries','ohlcv','adjacency','pointcloud','ast'],
+  crypto: ['hash','signature','hmac','keypair','certificate','ciphertext','dns','dhcp','icmp'],
+  enc:    ['protobuf','msgpack','cbor','arrow','parquet','geojson','jwt','graphql'],
+  num:    ['uint8','int8','int16','uint16','int32','uint32','int64','uint64','float32','float64','complex64','complex128','bool','timestamp','uuid'],
+  doc:    ['frame','patch','multipart'],
+};
+
+const CAT_LABELS = {
+  media:'Media & Docs', text:'Text & Markup', net:'Network & Protocol', obs:'Observability',
+  ml:'ML & Data', crypto:'Crypto & Security', enc:'Encodings', num:'Numeric & Primitives', doc:'Structured',
+};
+
+const OPS = [
+  ['mux(...sources)',        'Merge N async sources into one interleaved stream'],
+  ['split(flow, n)',         'Fan-out: clone stream into N independent branches'],
+  ['gate(pred)',             'Filter with async predicate'],
+  ['scan(fn, seed)',         'Running accumulator — emit state after each item'],
+  ['zip(...sources)',        'Combine N sources into tuples, stopping at shortest'],
+  ['withBackpressure(hwm)',  'Pause upstream when in-flight count exceeds HWM'],
+  ['batch(n)',               'Collect items into fixed-size arrays'],
+  ['window(ms)',             'Collect items into time-bounded arrays'],
+  ['throttle(ms)',           'Pass at most one item per interval'],
+  ['debounce(ms)',           'Suppress items until quiet for ms'],
+  ['take(n)',                'Emit first N items then close'],
+  ['drop(n)',                'Skip first N items'],
+  ['distinct()',             'Deduplicate consecutive equal items'],
+  ['parallel(fn, n)',        'Concurrent async map with concurrency limit'],
+];
+
+const state = {
+  section: 'home',
+  chunksExpanded: false,
+};
+
+window.__debug = { page: state };
+
+function Chip({ type, cat }) {
+  return h('div', { class: `chip cat-${cat}` }, type);
+}
+
+function ChunkGrid() {
+  return h(Fragment, {},
+    ...Object.entries(CHUNKS).map(([cat, types]) =>
+      h('div', { style: 'margin-bottom:2rem' },
+        h('h3', { style: 'font-size:0.9rem;color:#8b949e;margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.05em' }, CAT_LABELS[cat]),
+        h('div', { class: 'grid' }, ...types.map(t => h(Chip, { type: t, cat })))
+      )
+    )
+  );
+}
+
+function OpsTable() {
+  return h('table', { class: 'op-table' },
+    h('thead', {},
+      h('tr', {},
+        h('th', {}, 'Operator'),
+        h('th', {}, 'Description'),
+      )
+    ),
+    h('tbody', {},
+      ...OPS.map(([op, desc]) =>
+        h('tr', {},
+          h('td', {}, op),
+          h('td', { style: 'color:#8b949e' }, desc),
+        )
+      )
+    )
+  );
+}
+
+function CodeExample() {
+  return h('div', { class: 'code-block' },
+    h('pre', {},
+      h('span', { class: 'kw' }, 'import'), ' { ',
+      h('span', { class: 'fn' }, 'createProcessor'), ', ',
+      h('span', { class: 'fn' }, 'json'), ', ',
+      h('span', { class: 'fn' }, 'gate'), ', ',
+      h('span', { class: 'fn' }, 'parallel'),
+      ' } ', h('span', { class: 'kw' }, 'from'), ' ',
+      h('span', { class: 'str' }, '"floosie"'), ';\n\n',
+      h('span', { class: 'fn' }, 'createProcessor'), '({\n',
+      '  name: ', h('span', { class: 'str' }, '"classifier"'), ',\n',
+      '  transform: (flow) =>\n',
+      '    flow\n',
+      '      .',h('span',{class:'fn'},'through'),'(', h('span',{class:'fn'},'gate'),'(c => c.data.score > 0.9))\n',
+      '      .',h('span',{class:'fn'},'through'),'(', h('span',{class:'fn'},'parallel'),'(classify, 4))\n',
+      '      .',h('span',{class:'fn'},'through'),'(', h('span',{class:'fn'},'gate'),'(c => c.data.label !== ',h('span',{class:'str'},'"spam"'),'))\n',
+      '});\n'
+    )
+  );
+}
+
+function App() {
+  const total = Object.values(CHUNKS).reduce((n, arr) => n + arr.length, 0);
+  return h('div', {},
+    h('div', { class: 'hero' },
+      h('h1', {}, 'floosie'),
+      h('p', {}, 'Universal stream processing platform. Type-safe chunks, composable operators, and CLI pipe semantics — pipe anything to anything.'),
+      h('div', { class: 'badge-row' },
+        h('span', { class: 'badge' }, `${total} chunk types`),
+        h('span', { class: 'badge' }, '14 operators'),
+        h('span', { class: 'badge' }, 'ESM · TypeScript'),
+        h('span', { class: 'badge' }, 'ACP · stdio · pipeline'),
+      ),
+      h('div', { style: 'display:flex;gap:1rem;justify-content:center;flex-wrap:wrap' },
+        h('a', { href: 'https://github.com/AnEntrypoint/floosie', class: 'btn btn-primary btn-sm', style: 'text-decoration:none' }, 'GitHub'),
+        h('a', { href: 'https://www.npmjs.com/package/floosie', class: 'btn btn-ghost btn-sm', style: 'text-decoration:none' }, 'npm'),
+      )
+    ),
+    h('div', { class: 'section' },
+      h('h2', {}, 'Chunk Types'),
+      h('p', { style: 'color:#8b949e;margin-bottom:2rem' }, `Every value in a floosie stream is a typed chunk. ${total} built-in types cover binary media, text formats, network protocols, ML tensors, cryptographic primitives, and more.`),
+      h(ChunkGrid, {})
+    ),
+    h('div', { class: 'section', style: 'background:#0d1117' },
+      h('h2', {}, 'Stream Operators'),
+      h('p', { style: 'color:#8b949e;margin-bottom:2rem' }, 'All operators are typed StreamNode factories that compose cleanly with pipe().'),
+      h(OpsTable, {})
+    ),
+    h('div', { class: 'section' },
+      h('h2', {}, 'Usage'),
+      h(CodeExample, {})
+    ),
+    h('footer', {},
+      'Built with ',
+      h('a', { href: 'https://webjsx.org' }, 'webjsx'),
+      ' · Styled with ',
+      h('a', { href: 'https://www.ripple-ui.com' }, 'RippleUI'),
+      ' · ',
+      h('a', { href: 'https://github.com/AnEntrypoint/floosie' }, 'Source on GitHub'),
+    )
+  );
+}
+
+applyDiff(document.getElementById('app'), [h(App, {})]);
+</script>
+</body>
+</html>

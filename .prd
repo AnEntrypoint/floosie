@@ -1,0 +1,30 @@
+- id: gh-action
+  subject: Write GitHub Actions workflow to build and deploy GH Pages
+  status: pending
+  description: Workflow that runs on push to main, installs deps, runs PurgeCSS on rippleui against docs/index.html, deploys docs/ to GH Pages for AnEntrypoint/floosie
+  effort: small
+  category: infra
+  blocking: []
+  blockedBy: []
+  acceptance:
+    - .github/workflows/gh-pages.yml exists
+    - Workflow triggers on push to main
+    - Installs Node deps, runs purgecss to generate docs/vendor/rippleui.css
+    - Deploys docs/ directory to GH Pages
+    - No secrets required beyond GITHUB_TOKEN
+  edge_cases:
+    - gh-pages deploy action must have write permissions
+
+- id: add-remote
+  subject: Add AnEntrypoint/floosie as push remote and push
+  status: pending
+  description: Add AnEntrypoint/floosie remote, commit all pending changes, push to main
+  effort: small
+  category: infra
+  blocking: []
+  blockedBy: ["gh-action"]
+  acceptance:
+    - git remote shows AnEntrypoint/floosie
+    - all files committed and pushed
+  edge_cases:
+    - repo may already exist
