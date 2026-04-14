@@ -11,6 +11,7 @@ Universal stream processing platform. Pipe anything to anything.
 - `src/codec.ts` — `CODECS` registry: encode/decode per chunk type; passthrough for binary; ndjson for json/raw; newline for text
 - `src/codec-text.ts` — text/markup codecs; `src/codec-binary.ts` — binary/media codecs; `src/codec-structured.ts` — JSON-envelope codecs
 - `src/mime.ts` — `detectMime(Uint8Array): string`; magic-byte detection for 35 formats; auto-populated in binary decode meta
+- `src/file-detect.ts` — `detectFile()` async using file-type v22.0.1 (183 formats); `detectMime()` stays sync for codec decode paths; UTF-16 BOM checked first (file-type misdetects 0xff 0xfe as audio/mpeg)
 - `src/node.ts` — `StreamNode<I,O>`: composable sflow-backed pipe unit, lazy until iterated
 - `src/processor.ts` — `createProcessor()`: single-call SDK entry; auto-detects stream type; tracks state via registry; `pipe()` composes transforms
 - `src/pipeline.ts` — `pipe()`, `connect()`, `source()`, `sink()` — pipeline composition
@@ -50,6 +51,14 @@ sflow(async function*() {
   }
 }())
 ```
+
+### File-Type Detection
+
+**file-type v22.0.1 caveat:** Misdetects UTF-16 LE BOM (0xff 0xfe) as audio/mpeg (MP1). Always check UTF-16 BOM first in detection pipeline before calling file-type.
+
+**detectFile() vs detectMime():** `detectFile()` is async (uses file-type, 183 formats); `detectMime()` is sync (hand-rolled SIGS table, 35 formats) for use in synchronous codec decode paths.
+
+**Text heuristic:** If >30% of first 512 bytes have values >127, return application/octet-stream. Otherwise run TEXT_PATTERNS regex. FileInfo type: `{ mime: string; ext?: string; charset?: string; description?: string }`
 
 ### Dependencies & TypeScript
 - **@agentclientprotocol/sdk v0.19.0** has TS 5.x export ambiguity — requires `skipLibCheck: true` in tsconfig
