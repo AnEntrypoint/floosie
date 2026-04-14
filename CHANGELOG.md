@@ -1,3 +1,8 @@
+### 0.6.2 — 2026-04-14
+- Perf: remove trackOutput generator — incOut() merged into splitStream routing loop (3 async gen hops instead of 4)
+- Perf: splitStream drain() uses index-pointer + splice instead of array.shift() — O(1) access, compact on wait
+- Throughput: 303k → 470k+ chunks/sec (~55% additional improvement)
+
 ### 0.6.1 — 2026-04-14
 - Perf: move chunksIn/chunksOut counters out of xstate context to plain mutable objects on registry Entry
 - Eliminates 2x actor.send() per chunk (TICK_IN/TICK_OUT events removed from ProcessorMachine)

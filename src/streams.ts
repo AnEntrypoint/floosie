@@ -1,8 +1,6 @@
 import type { Chunk } from "./chunk.js";
 import type { ErrorChunk, SignalChunk } from "./chunk-aliases.js";
 
-const STDERR_TYPES = new Set(["error", "signal"]);
-
 export type StreamSplit<O extends Chunk> = {
   stdout: AsyncIterable<O>;
   stderr: AsyncIterable<ErrorChunk | SignalChunk>;
@@ -16,7 +14,10 @@ function notify(ref: { v: Wake }): void {
   if (fn) fn();
 }
 
-export function splitStream<O extends Chunk>(iter: AsyncIterable<O>): StreamSplit<O> {
+export function splitStream<O extends Chunk>(
+  iter: AsyncIterable<O>,
+  onOut?: () => void,
+): StreamSplit<O> {
   const stdoutQueue: O[] = [];
   const stderrQueue: (ErrorChunk | SignalChunk)[] = [];
   const stdoutWake: { v: Wake } = { v: null };
@@ -25,7 +26,8 @@ export function splitStream<O extends Chunk>(iter: AsyncIterable<O>): StreamSpli
 
   (async () => {
     for await (const chunk of iter) {
-      if (STDERR_TYPES.has(chunk.type)) {
+      if (onOut) onOut();
+      if (chunk.type === "error" || chunk.type === "signal") {
         stderrQueue.push(chunk as unknown as ErrorChunk | SignalChunk);
         notify(stderrWake);
       } else {
@@ -39,10 +41,16 @@ export function splitStream<O extends Chunk>(iter: AsyncIterable<O>): StreamSpli
   })();
 
   async function* drain<T>(queue: T[], wake: { v: Wake }): AsyncIterable<T> {
+    let idx = 0;
     while (true) {
-      if (queue.length > 0) { yield queue.shift()!; }
-      else if (done) { return; }
-      else { await new Promise<void>(r => { wake.v = r; }); }
+      if (idx < queue.length) {
+        yield queue[idx++]!;
+      } else if (done) {
+        return;
+      } else {
+        if (idx > 0) { queue.splice(0, idx); idx = 0; }
+        await new Promise<void>(r => { wake.v = r; });
+      }
     }
   }
 

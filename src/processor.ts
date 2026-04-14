@@ -77,8 +77,7 @@ export function createProcessor<I extends Chunk, O extends Chunk>(
     const source = trackInput(sourceRaw, state);
     const flow = sflow(source as AsyncIterable<I>);
     const transformed = config.transform(flow) as AsyncIterable<O>;
-    const tracked = trackOutput(transformed, state);
-    return splitStream(tracked);
+    return splitStream(transformed as AsyncIterable<O>, () => state.incOut());
   }
 
   const handle: ProcessorHandle<I, O> = {
@@ -129,6 +128,3 @@ async function* trackInput(source: AsyncIterable<Chunk>, state: ProcessorState):
   for await (const chunk of source) { state.incIn(); yield chunk; }
 }
 
-async function* trackOutput<O extends Chunk>(source: AsyncIterable<O>, state: ProcessorState): AsyncIterable<O> {
-  for await (const chunk of source) { state.incOut(); yield chunk; }
-}
