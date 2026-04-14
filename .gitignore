@@ -2,3 +2,4 @@
 node_modules/
 .codeinsight
 dist/
+.plugkit-browser-profile/
