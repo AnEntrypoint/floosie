@@ -1,0 +1,79 @@
+- id: validate-mime
+  subject: Validate detectMime magic-byte detection for all 35 formats
+  status: pending
+  description: |
+    Witness detectMime returning correct MIME for representative magic bytes
+    of each detected format. Cover: PNG, JPEG, GIF, WebP, PDF, ZIP, GZIP,
+    MP4, WebM, MP3, WAV, FLAC, OGG, Arrow, Parquet, MsgPack magic bytes.
+  effort: small
+  category: infra
+  blocking: []
+  blockedBy: []
+  acceptance:
+    - PNG magic bytes return image/png
+    - JPEG magic bytes return image/jpeg
+    - PDF magic bytes return application/pdf
+    - ZIP magic bytes return application/zip
+    - unknown bytes return application/octet-stream
+    - at least 10 formats verified with real magic bytes
+  edge_cases:
+    - empty Uint8Array does not throw
+    - 1-byte input does not throw
+
+- id: validate-framing
+  subject: Validate stdio framing encode/decode round-trips for all three framing types
+  status: pending
+  description: |
+    Witness: length-prefix framing (binary chunk), ndjson framing (json chunk),
+    newline framing (text chunk) — encode then decode back through the same
+    stdinChunks/writeToStdout pipeline logic. Verify boundary correctness for
+    multi-chunk sequences.
+  effort: small
+  category: infra
+  blocking: []
+  blockedBy: []
+  acceptance:
+    - length-prefix: binary chunk survives encode/decode with correct bytes
+    - ndjson: json chunk survives encode/decode with correct data
+    - newline: text chunk survives encode/decode with correct string
+    - multi-chunk sequence decoded in order without corruption
+  edge_cases:
+    - empty binary payload (null chunk) framed and decoded correctly
+    - json with unicode survives ndjson round-trip
+
+- id: validate-operator-composition
+  subject: Validate operators chained into real processor pipelines end-to-end
+  status: pending
+  description: |
+    Witness operators composed with createProcessor and pipe():
+    source -> gate -> scan -> batch pipeline producing correct output.
+    mux two sources through take(5) pipeline.
+    split stream into two branches with different transforms.
+  effort: small
+  category: infra
+  blocking: []
+  blockedBy: []
+  acceptance:
+    - gate->scan->batch pipeline produces correct batched running totals
+    - mux->take produces exactly N items from merged sources
+    - split branches receive identical input and transform independently
+  edge_cases:
+    - empty source through operator chain emits nothing
+    - single-item source through batch(10) emits one batch of 1
+
+- id: validate-error-paths
+  subject: Validate error propagation through processor and codec
+  status: pending
+  description: |
+    Witness: codec decode failure throws with context, processor catching
+    transform error sets status=error, malformed ndjson input throws.
+  effort: small
+  category: infra
+  blocking: []
+  blockedBy: []
+  acceptance:
+    - decodeChunk with invalid bytes throws Error with message context
+    - createProcessor with throwing transform sets state.status to error
+    - error is surfaced (not swallowed) when start() is awaited
+  edge_cases:
+    - error in mid-stream (after some chunks processed) still sets error state
