@@ -63,3 +63,5 @@ export type { ProcessorState, ProcessorStatus } from "./registry.js";
 export { registry } from "./registry.js";
 
 export { detectMime } from "./mime.js";
+
+export { mux, split, gate, scan, zip, withBackpressure, batch, window, throttle, debounce, take, drop, distinct, parallel } from "./operators.js";
