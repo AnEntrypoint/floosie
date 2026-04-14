@@ -12,7 +12,7 @@ const pass = <K extends
   return {
     encode: (c) => (c as { data: Uint8Array }).data,
     decode: (b, meta) => {
-      const mime = detectMime(b);
+      const mime = meta?.mime ?? detectMime(b);
       const m = meta !== undefined ? { ...meta, mime } : { mime };
       return { type, data: b, meta: m } as T;
     },
@@ -48,23 +48,23 @@ const fixedBig = <K extends "int64"|"uint64">(
 
 const u8w = (v: number|boolean) => new Uint8Array([Number(v) & 0xff]);
 const u8r = (b: Uint8Array) => b[0]!;
-const i8w = (v: number|boolean) => { view.setInt8(0, Number(v)); return new Uint8Array(view.buffer.slice(0, 1)); };
+const i8w = (v: number|boolean) => { view.setInt8(0, Number(v)); return Uint8Array.from(new Uint8Array(view.buffer, 0, 1)); };
 const i8r = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset).getInt8(0);
-const i16w = (v: number|boolean) => { view.setInt16(0, Number(v), true); return new Uint8Array(view.buffer.slice(0, 2)); };
+const i16w = (v: number|boolean) => { view.setInt16(0, Number(v), true); return Uint8Array.from(new Uint8Array(view.buffer, 0, 2)); };
 const i16r = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset).getInt16(0, true);
-const u16w = (v: number|boolean) => { view.setUint16(0, Number(v), true); return new Uint8Array(view.buffer.slice(0, 2)); };
+const u16w = (v: number|boolean) => { view.setUint16(0, Number(v), true); return Uint8Array.from(new Uint8Array(view.buffer, 0, 2)); };
 const u16r = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset).getUint16(0, true);
-const i32w = (v: number|boolean) => { view.setInt32(0, Number(v), true); return new Uint8Array(view.buffer.slice(0, 4)); };
+const i32w = (v: number|boolean) => { view.setInt32(0, Number(v), true); return Uint8Array.from(new Uint8Array(view.buffer, 0, 4)); };
 const i32r = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset).getInt32(0, true);
-const u32w = (v: number|boolean) => { view.setUint32(0, Number(v), true); return new Uint8Array(view.buffer.slice(0, 4)); };
+const u32w = (v: number|boolean) => { view.setUint32(0, Number(v), true); return Uint8Array.from(new Uint8Array(view.buffer, 0, 4)); };
 const u32r = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset).getUint32(0, true);
-const f32w = (v: number|boolean) => { view.setFloat32(0, Number(v), true); return new Uint8Array(view.buffer.slice(0, 4)); };
+const f32w = (v: number|boolean) => { view.setFloat32(0, Number(v), true); return Uint8Array.from(new Uint8Array(view.buffer, 0, 4)); };
 const f32r = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset).getFloat32(0, true);
-const f64w = (v: number|boolean) => { view.setFloat64(0, Number(v), true); return new Uint8Array(view.buffer.slice(0, 8)); };
+const f64w = (v: number|boolean) => { view.setFloat64(0, Number(v), true); return Uint8Array.from(new Uint8Array(view.buffer, 0, 8)); };
 const f64r = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset).getFloat64(0, true);
-const i64w = (v: bigint) => { view.setBigInt64(0, v, true); return new Uint8Array(view.buffer.slice(0, 8)); };
+const i64w = (v: bigint) => { view.setBigInt64(0, v, true); return Uint8Array.from(new Uint8Array(view.buffer, 0, 8)); };
 const i64r = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset).getBigInt64(0, true);
-const u64w = (v: bigint) => { view.setBigUint64(0, v, true); return new Uint8Array(view.buffer.slice(0, 8)); };
+const u64w = (v: bigint) => { view.setBigUint64(0, v, true); return Uint8Array.from(new Uint8Array(view.buffer, 0, 8)); };
 const u64r = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset).getBigUint64(0, true);
 
 const enc = new TextEncoder();
@@ -95,7 +95,7 @@ const jsonHeaderCodec = <K extends "frame"|"multipart"|"ciphertext"|"signature"|
 export const EMBEDDING_CODEC: ChunkCodec<Extract<Chunk, { type: "embedding" }>> = {
   encode: (c) => new Uint8Array(c.data.buffer, c.data.byteOffset, c.data.byteLength),
   decode: (b, meta) => {
-    const data = new Float32Array(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
+    const data = new Float32Array(b.buffer, b.byteOffset, b.byteLength >> 2);
     return meta !== undefined ? { type: "embedding", data, meta } : { type: "embedding", data };
   },
 };

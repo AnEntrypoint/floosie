@@ -1,3 +1,8 @@
+### 0.6.3 — 2026-04-14
+- Perf: pass() decode skips detectMime() when meta.mime already present (0.43–0.98µs saved per call)
+- Perf: EMBEDDING_CODEC.decode uses zero-copy Float32Array view instead of buffer.slice copy (1.16µs → 0.10µs)
+- Perf: fixedNum/fixedBig write helpers use Uint8Array.from(view) instead of buffer.slice — eliminates ArrayBuffer alloc per encode (0.60µs → 0.11µs)
+
 ### 0.6.2 — 2026-04-14
 - Perf: remove trackOutput generator — incOut() merged into splitStream routing loop (3 async gen hops instead of 4)
 - Perf: splitStream drain() uses index-pointer + splice instead of array.shift() — O(1) access, compact on wait
