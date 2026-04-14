@@ -75,6 +75,11 @@ sflow(async function*() {
 - **Nullable function narrowing:** `let wake: (() => void) | null` doesn't narrow with `if (wake) wake()` — use ref pattern: `const ref: {v: (() => void) | null} = {v: null}; const fn = ref.v; ref.v = null; if (fn) fn()`
 - **actor.send() cost:** ~8,900ns/op — do NOT call per-chunk. Plain object property increment costs ~0.24ns/op (37,000x faster). Use xstate only for lifecycle transitions; track per-chunk counters as plain `{ in: number; out: number }` on the registry Entry.
 
+### codec-binary.ts Performance Facts
+- **Float32Array zero-copy alignment:** `new Float32Array(buffer, byteOffset, len>>2)` requires 4-byte aligned byteOffset. jsonHeaderCodec payloads are NOT guaranteed aligned (byteOffset = 4 + hlen). Use `buffer.slice()` for pointcloud decode; stdio framing is safe (byteOffset=4, aligned).
+- **detectMime skip optimization:** `pass()` codec: `meta?.mime ?? detectMime(b)` — skip detectMime when mime already set. Saves 0.43–0.98µs per call.
+- **fixedNum write helper optimization:** `Uint8Array.from(new Uint8Array(view.buffer, 0, N))` is 5.5x faster than `new Uint8Array(view.buffer.slice(0, N))` — avoids ArrayBuffer allocation.
+
 ## Changes
 
 ### 0.6.0 — 2026-04-14
