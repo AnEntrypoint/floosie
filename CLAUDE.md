@@ -71,6 +71,7 @@ sflow(async function*() {
 - **actor.start()**, **actor.send({type})**, **actor.getSnapshot().value**, **actor.getSnapshot().context**
 - **getSnapshot().context type issue:** inferred as function type, not context shape — cast as `actor.getSnapshot().context as unknown as ProcessorContext`
 - **Nullable function narrowing:** `let wake: (() => void) | null` doesn't narrow with `if (wake) wake()` — use ref pattern: `const ref: {v: (() => void) | null} = {v: null}; const fn = ref.v; ref.v = null; if (fn) fn()`
+- **actor.send() cost:** ~8,900ns/op — do NOT call per-chunk. Plain object property increment costs ~0.24ns/op (37,000x faster). Use xstate only for lifecycle transitions; track per-chunk counters as plain `{ in: number; out: number }` on the registry Entry.
 
 ## Changes
 
