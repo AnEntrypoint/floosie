@@ -1,30 +1,35 @@
-- id: gh-action
-  subject: Write GitHub Actions workflow to build and deploy GH Pages
+- id: xstate-processor
+  subject: Replace manual status mutations with XState machine in processor/registry
   status: pending
-  description: Workflow that runs on push to main, installs deps, runs PurgeCSS on rippleui against docs/index.html, deploys docs/ to GH Pages for AnEntrypoint/floosie
-  effort: small
-  category: infra
-  blocking: []
+  description: Install xstate, define ProcessorMachine (idle->running->error|idle->stopped), use createActor per processor. Registry stores actors. Processor status reads from actor.getSnapshot().value.
+  effort: medium
+  category: refactor
+  blocking: [dual-streams]
   blockedBy: []
   acceptance:
-    - .github/workflows/gh-pages.yml exists
-    - Workflow triggers on push to main
-    - Installs Node deps, runs purgecss to generate docs/vendor/rippleui.css
-    - Deploys docs/ directory to GH Pages
-    - No secrets required beyond GITHUB_TOKEN
+    - xstate in package.json dependencies
+    - src/machine.ts exports ProcessorMachine (createMachine)
+    - src/processor.ts uses createActor(ProcessorMachine) instead of manual status mutations
+    - src/registry.ts stores actor per entry, status derived from actor snapshot
+    - ProcessorStatus type remains compatible (idle|running|error|stopped)
+    - inspect()/snapshot() still work
   edge_cases:
-    - gh-pages deploy action must have write permissions
+    - xstate v5 API differs from v4 — must witness createMachine/createActor shapes
+    - actor.send() is sync, start() is async — actor lifecycle must match
 
-- id: add-remote
-  subject: Add AnEntrypoint/floosie as push remote and push
+- id: dual-streams
+  subject: Add stderr stream to ProcessorHandle for error and signal chunks
   status: pending
-  description: Add AnEntrypoint/floosie remote, commit all pending changes, push to main
-  effort: small
-  category: infra
+  description: ProcessorHandle gains stderr:AsyncIterable<ErrorChunk|SignalChunk>. Transform output is tee-split — error/signal types route to stderr, all others to stdout. stdio.ts writes error/signal to process.stderr, normal chunks to process.stdout.
+  effort: medium
+  category: feature
   blocking: []
-  blockedBy: ["gh-action"]
+  blockedBy: [xstate-processor]
   acceptance:
-    - git remote shows AnEntrypoint/floosie
-    - all files committed and pushed
+    - ProcessorHandle.stderr exists as AsyncIterable<ErrorChunk|SignalChunk>
+    - ProcessorHandle.output (stdout) never emits error/signal chunks
+    - stdio.ts writes error/signal chunks to process.stderr
+    - ErrorChunk and SignalChunk types imported from chunk-aliases
   edge_cases:
-    - repo may already exist
+    - stderr consumer may not be attached — must buffer or drop safely (use async tee pattern)
+    - pipe() composition must propagate stderr from all stages

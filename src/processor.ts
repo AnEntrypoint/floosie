@@ -1,19 +1,13 @@
 import { sflow } from "sflow";
 import type { Chunk } from "./chunk.js";
+import type { ErrorChunk, SignalChunk } from "./chunk-aliases.js";
 import type { FlowFn } from "./node.js";
 import { registry, type ProcessorState } from "./registry.js";
+import { splitStream, type StreamSplit } from "./streams.js";
 import type { Writable } from "node:stream";
 
-type AnyReadable =
-  | AsyncIterable<Chunk>
-  | ReadableStream<Chunk>
-  | null;
-
-type AnyWritable =
-  | WritableStream<Chunk>
-  | Writable
-  | null
-  | undefined;
+type AnyReadable = AsyncIterable<Chunk> | ReadableStream<Chunk> | null;
+type AnyWritable = WritableStream<Chunk> | Writable | null | undefined;
 
 export type ProcessorConfig<I extends Chunk, O extends Chunk> = {
   name: string;
@@ -30,25 +24,21 @@ export type ProcessorHandle<I extends Chunk = Chunk, O extends Chunk = Chunk> = 
   stop(): void;
   pipe<N extends Chunk>(next: ProcessorHandle<O, N>): ProcessorHandle<I, N>;
   readonly output: AsyncIterable<O>;
+  readonly stdout: AsyncIterable<O>;
+  readonly stderr: AsyncIterable<ErrorChunk | SignalChunk>;
 };
 
 function toAsyncIterable(source: AnyReadable): AsyncIterable<Chunk> {
-  if (source == null) {
-    return nodeReadableToAsyncIterable(process.stdin as unknown as NodeJS.ReadableStream);
-  }
-  if (Symbol.asyncIterator in (source as object)) {
-    return source as AsyncIterable<Chunk>;
-  }
-  return webReadableToAsyncIterable(source as ReadableStream<Chunk>);
+  if (source == null) return stdinIter();
+  if (Symbol.asyncIterator in (source as object)) return source as AsyncIterable<Chunk>;
+  return webReadable(source as ReadableStream<Chunk>);
 }
 
-async function* nodeReadableToAsyncIterable(readable: NodeJS.ReadableStream): AsyncIterable<Chunk> {
-  for await (const chunk of readable as AsyncIterable<unknown>) {
-    yield chunk as Chunk;
-  }
+async function* stdinIter(): AsyncIterable<Chunk> {
+  for await (const chunk of process.stdin as AsyncIterable<unknown>) yield chunk as Chunk;
 }
 
-async function* webReadableToAsyncIterable(readable: ReadableStream<Chunk>): AsyncIterable<Chunk> {
+async function* webReadable(readable: ReadableStream<Chunk>): AsyncIterable<Chunk> {
   const reader = readable.getReader();
   try {
     while (true) {
@@ -56,53 +46,39 @@ async function* webReadableToAsyncIterable(readable: ReadableStream<Chunk>): Asy
       if (done) break;
       yield value;
     }
-  } finally {
-    reader.releaseLock();
-  }
+  } finally { reader.releaseLock(); }
 }
 
 async function drainToWritable(iter: AsyncIterable<Chunk>, dest: AnyWritable): Promise<void> {
   if (dest == null) {
     const enc = new TextEncoder();
-    for await (const chunk of iter) {
-      process.stdout.write(enc.encode(JSON.stringify(chunk) + "\n"));
-    }
+    for await (const chunk of iter) process.stdout.write(enc.encode(JSON.stringify(chunk) + "\n"));
     return;
   }
   if (dest instanceof WritableStream) {
     const writer = (dest as WritableStream<Chunk>).getWriter();
-    try {
-      for await (const chunk of iter) {
-        await writer.write(chunk);
-      }
-      await writer.close();
-    } finally {
-      writer.releaseLock();
-    }
+    try { for await (const chunk of iter) await writer.write(chunk); await writer.close(); }
+    finally { writer.releaseLock(); }
     return;
   }
-  const nodeWritable = dest as InstanceType<typeof Writable>;
-  for await (const chunk of iter) {
-    await new Promise<void>((resolve, reject) => {
-      nodeWritable.write(chunk, (err) => (err ? reject(err) : resolve()));
-    });
-  }
-  await new Promise<void>((resolve) => nodeWritable.end(resolve));
+  const w = dest as InstanceType<typeof Writable>;
+  for await (const chunk of iter) await new Promise<void>((res, rej) => w.write(chunk, e => e ? rej(e) : res()));
+  await new Promise<void>(res => w.end(res));
 }
 
 export function createProcessor<I extends Chunk, O extends Chunk>(
   config: ProcessorConfig<I, O>,
 ): ProcessorHandle<I, O> {
   const state = registry.register(config.name);
-  let abortController = new AbortController();
-  let _output: AsyncIterable<O> | null = null;
+  let split: StreamSplit<O> | null = null;
 
-  function buildOutput(): AsyncIterable<O> {
+  function buildSplit(): StreamSplit<O> {
     const sourceRaw = toAsyncIterable(config.input ?? null);
     const source = trackInput(sourceRaw, state);
     const flow = sflow(source as AsyncIterable<I>);
-    const transformed = config.transform(flow);
-    return trackOutput(transformed as AsyncIterable<Chunk>, state) as AsyncIterable<O>;
+    const transformed = config.transform(flow) as AsyncIterable<O>;
+    const tracked = trackOutput(transformed, state);
+    return splitStream(tracked);
   }
 
   const handle: ProcessorHandle<I, O> = {
@@ -110,39 +86,32 @@ export function createProcessor<I extends Chunk, O extends Chunk>(
     state,
     _transform: config.transform,
 
-    get output(): AsyncIterable<O> {
-      if (!_output) _output = buildOutput();
-      return _output;
-    },
+    get output()  { if (!split) split = buildSplit(); return split.stdout; },
+    get stdout()  { if (!split) split = buildSplit(); return split.stdout; },
+    get stderr()  { if (!split) split = buildSplit(); return split.stderr; },
 
     async start(): Promise<void> {
       if (state.status === "running") return;
-      state.status = "running";
-      state.startedAt = Date.now();
-      _output = buildOutput();
+      state.send({ type: "START" });
+      state.send({ type: "START_AT", ts: Date.now() });
+      split = buildSplit();
       try {
-        await drainToWritable(_output as AsyncIterable<Chunk>, config.output);
-        state.status = "idle";
+        await drainToWritable(split.stdout as AsyncIterable<Chunk>, config.output);
+        state.send({ type: "COMPLETE" });
       } catch (e) {
-        state.status = "error";
-        state.errors.push(String(e));
+        state.send({ type: "ERROR", message: String(e) });
         throw e;
       }
     },
 
     stop(): void {
-      abortController.abort();
-      abortController = new AbortController();
-      state.status = "stopped";
-      _output = null;
+      state.send({ type: "STOP" });
+      split = null;
     },
 
     pipe<N extends Chunk>(next: ProcessorHandle<O, N>): ProcessorHandle<I, N> {
-      const self = handle;
-      const composedTransform: FlowFn<I, N> = (flow) => {
-        const midFlow = self._transform(flow);
-        return next._transform(midFlow as ReturnType<typeof sflow<O>>);
-      };
+      const composedTransform: FlowFn<I, N> = (flow) =>
+        next._transform(handle._transform(flow) as ReturnType<typeof sflow<O>>);
       const pipedConfig: ProcessorConfig<I, N> = {
         name: `${state.name}→${next.name}`,
         transform: composedTransform,
@@ -157,15 +126,9 @@ export function createProcessor<I extends Chunk, O extends Chunk>(
 }
 
 async function* trackInput(source: AsyncIterable<Chunk>, state: ProcessorState): AsyncIterable<Chunk> {
-  for await (const chunk of source) {
-    state.chunksIn++;
-    yield chunk;
-  }
+  for await (const chunk of source) { state.send({ type: "TICK_IN" }); yield chunk; }
 }
 
-async function* trackOutput(source: AsyncIterable<Chunk>, state: ProcessorState): AsyncIterable<Chunk> {
-  for await (const chunk of source) {
-    state.chunksOut++;
-    yield chunk;
-  }
+async function* trackOutput<O extends Chunk>(source: AsyncIterable<O>, state: ProcessorState): AsyncIterable<O> {
+  for await (const chunk of source) { state.send({ type: "TICK_OUT" }); yield chunk; }
 }

@@ -45,6 +45,8 @@ const FRAME_TYPES: Record<ChunkType, Framing> = {
   float32: "length-prefix",   complex64: "length-prefix",  complex128: "length-prefix",
 };
 
+const STDERR_TYPES = new Set<ChunkType>(["error", "signal"]);
+
 async function* stdinChunks(type: ChunkType): AsyncIterable<Chunk> {
   const enc = new TextEncoder();
   const dec = new TextDecoder();
@@ -78,19 +80,20 @@ async function* stdinChunks(type: ChunkType): AsyncIterable<Chunk> {
   }
 }
 
-function writeToStdout(chunk: Chunk): void {
+function writeChunk(chunk: Chunk): void {
+  const dest = STDERR_TYPES.has(chunk.type) ? process.stderr : process.stdout;
   const strategy = FRAME_TYPES[chunk.type];
   const bytes = encodeChunk(chunk);
 
   if (strategy === "ndjson" || strategy === "newline") {
-    process.stdout.write(new TextDecoder().decode(bytes) + "\n");
+    dest.write(new TextDecoder().decode(bytes) + "\n");
     return;
   }
 
   const frame = Buffer.alloc(4 + bytes.length);
   frame.writeUInt32BE(bytes.length, 0);
   bytes.forEach((b, i) => frame.writeUInt8(b, 4 + i));
-  process.stdout.write(frame);
+  dest.write(frame);
 }
 
 export function stdioProcessor<I extends Chunk, O extends Chunk>(
@@ -102,7 +105,7 @@ export function stdioProcessor<I extends Chunk, O extends Chunk>(
     input,
     transform: (flow) => {
       const transformed = config.transform(flow);
-      return sflow(transformed).forEach((chunk: O) => { writeToStdout(chunk); }) as ReturnType<typeof sflow<O>>;
+      return sflow(transformed).forEach((chunk: O) => { writeChunk(chunk); }) as ReturnType<typeof sflow<O>>;
     },
   });
 }

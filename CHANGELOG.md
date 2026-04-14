@@ -1,3 +1,12 @@
+### 0.6.0 — 2026-04-14
+- Add xstate v5 ProcessorMachine (idle/running/error/stopped) — replaces manual status mutation
+- Registry stores Actor per processor; status and context read from actor snapshots
+- ProcessorHandle gains stdout+stderr dual streams — error/signal chunks route to stderr
+- src/machine.ts: ProcessorMachine definition and ProcessorContext type
+- src/streams.ts: splitStream fan-out — error/signal to stderr queue, rest to stdout queue
+- stdio.ts: writeChunk routes error/signal types to process.stderr, others to process.stdout
+- acp.ts: error handler uses state.send ERROR event instead of direct mutation
+
 ### 0.5.0 — 2026-04-14
 - Replace hand-rolled signature table with file-type (183 formats: ELF, Mach-O, SQLite, zstd, lz4, fonts, and 170+ more)
 - Add detectFile(Uint8Array): Promise<FileInfo> — rich async detection with mime, ext, charset, description

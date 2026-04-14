@@ -62,6 +62,12 @@ export { pipe, connect, source, sink } from "./pipeline.js";
 export type { ProcessorState, ProcessorStatus } from "./registry.js";
 export { registry } from "./registry.js";
 
+export type { ProcessorContext } from "./machine.js";
+export { ProcessorMachine } from "./machine.js";
+
+export type { StreamSplit } from "./streams.js";
+export { splitStream } from "./streams.js";
+
 export type { FileInfo } from "./mime.js";
 export { detectMime, detectFile } from "./mime.js";
 

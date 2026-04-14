@@ -80,8 +80,7 @@ export function acpProcessor<I extends Chunk, O extends Chunk>(
 
   const sink = acpSink(conn);
   void sink(handle.output as AsyncIterable<Chunk>).catch((e: unknown) => {
-    handle.state.errors.push(String(e));
-    handle.state.status = "error";
+    handle.state.send({ type: "ERROR", message: String(e) });
   });
 
   return handle;
