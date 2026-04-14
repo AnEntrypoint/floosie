@@ -6,7 +6,11 @@ const dec = new TextDecoder();
 
 const jsonCodec = <K extends
   "http-request" | "http-response" | "websocket" | "token" | "error" | "signal" |
-  "rpc" | "event" | "span" | "metric" | "log" | "command" | "patch"
+  "rpc" | "event" | "span" | "metric" | "log" | "command" | "patch" |
+  "socketio" | "webtransport" | "envelope" | "ack" | "nack" | "ast" |
+  "hash" | "signature" | "tensor" | "timeseries" | "ohlcv" | "adjacency" |
+  "pointcloud" | "keypair" | "certificate" | "hmac" | "ciphertext" |
+  "timeseries" | "ohlcv"
 >(type: K): ChunkCodec<Extract<Chunk, { type: K }>> => {
   type T = Extract<Chunk, { type: K }>;
   return {
@@ -55,5 +59,14 @@ export const STRUCTURED_CODECS = {
   "log":           jsonCodec("log"),
   "command":       jsonCodec("command"),
   "patch":         jsonCodec("patch"),
+  "socketio":      jsonCodec("socketio"),
+  "envelope":      jsonCodec("envelope"),
+  "ack":           jsonCodec("ack"),
+  "nack":          jsonCodec("nack"),
+  "ast":           jsonCodec("ast"),
+  "hash":          jsonCodec("hash"),
+  "timeseries":    jsonCodec("timeseries"),
+  "ohlcv":         jsonCodec("ohlcv"),
+  "adjacency":     jsonCodec("adjacency"),
   "sse":           SSE_CODEC,
 };

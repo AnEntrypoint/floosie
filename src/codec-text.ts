@@ -4,7 +4,11 @@ import type { ChunkCodec } from "./codec-types.js";
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-const utf8Codec = <K extends "text" | "ndjson" | "xml" | "yaml" | "markdown" | "html" | "sql" | "delta" | "uuid" | "geojson" | "jwt" | "graphql">(
+const utf8Codec = <K extends
+  "text" | "ndjson" | "xml" | "yaml" | "markdown" | "html" | "sql" | "delta" | "uuid" |
+  "geojson" | "jwt" | "graphql" |
+  "toml" | "ini" | "jsonschema" | "avroschema" | "sourcemap" | "shader" | "obj" | "subtitle" | "playlist" | "graphml"
+>(
   type: K,
 ): ChunkCodec<Extract<Chunk, { type: K }>> => {
   type T = Extract<Chunk, { type: K }>;
@@ -72,4 +76,14 @@ export const TEXT_CODECS = {
   geojson:  utf8Codec("geojson"),
   jwt:      utf8Codec("jwt"),
   graphql:  utf8Codec("graphql"),
+  toml:     utf8Codec("toml"),
+  ini:      utf8Codec("ini"),
+  jsonschema: utf8Codec("jsonschema"),
+  avroschema: utf8Codec("avroschema"),
+  sourcemap:  utf8Codec("sourcemap"),
+  shader:   utf8Codec("shader"),
+  obj:      utf8Codec("obj"),
+  subtitle: utf8Codec("subtitle"),
+  playlist: utf8Codec("playlist"),
+  graphml:  utf8Codec("graphml"),
 };
