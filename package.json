@@ -1,15 +1,20 @@
 {
   "name": "floosie",
-  "version": "0.1.0",
+  "version": "0.6.3",
   "type": "module",
   "description": "Universal stream processing platform — pipe anything to anything",
   "exports": {
-    ".": "./src/index.ts",
-    "./acp": "./src/acp.ts",
-    "./stdio": "./src/stdio.ts",
-    "./registry": "./src/registry.ts"
+    ".": "./dist/index.js",
+    "./acp": "./dist/acp.js",
+    "./stdio": "./dist/stdio.js",
+    "./registry": "./dist/registry.js"
   },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
