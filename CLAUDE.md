@@ -67,6 +67,9 @@ sflow(async function*() {
 - **exactOptionalPropertyTypes: true** requires conditional spread: `meta !== undefined ? { ...o, meta } : { ...o }`
 - **Node v23.10** — native ESM, Web Streams built-in
 
+### npm publish CI Caveat
+- **`npm version` + gitignored build output:** When `tsc` outputs to `dist/` (gitignored), `npm version patch` fails with "Git working directory not clean" because npm checks status including untracked files. **Fix:** Use `npm version patch --no-git-tag-version`, then manually stage, commit, tag, and push: `git add package.json package-lock.json && git commit && git tag && git push --tags`.
+
 ### xstate v5.30.0 (ProcessorMachine)
 - **createMachine({id, initial, context: ({input}) => ctx, states})** — context is a function receiving {input}
 - **createActor(machine, {input})** — creates and returns actor
