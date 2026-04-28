@@ -1,0 +1,27 @@
+id: home
+title: Home
+hero:
+  heading: "floosie"
+  subheading: "universal stream pipeline"
+  body: "pipe anything to anything. the stream-composition primitive under streamtts and friends."
+  badges:
+    - { label: "streams" }
+    - { label: "pipeline" }
+    - { label: "web" }
+  ctas:
+    - { label: "GitHub", href: "https://github.com/AnEntrypoint/floosie", primary: true }
+    - { label: "Install", href: "https://github.com/AnEntrypoint/floosie#installation" }
+    - { label: "247420", href: "https://247420.xyz" }
+features:
+  heading: "Why floosie"
+  items:
+    - { name: "streams", desc: "flagship trait of floosie." }
+    - { name: "pipeline", desc: "core capability of floosie." }
+quickstart:
+  heading: Quick start
+  lines:
+    - { kind: "cmt", text: "# install" }
+    - { kind: "cmd", text: "npm i floosie" }
+    - { kind: "cmt", text: "" }
+    - { kind: "cmt", text: "# source" }
+    - { kind: "cmd", text: "git clone https://github.com/AnEntrypoint/floosie.git" }

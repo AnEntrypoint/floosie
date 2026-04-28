@@ -1,0 +1,16 @@
+title: "floosie"
+tagline: "universal stream pipeline"
+description: "pipe anything to anything. the stream-composition primitive under streamtts and friends."
+repo: "https://github.com/AnEntrypoint/floosie"
+url: "https://anentrypoint.github.io/floosie"
+year: 2026
+keywords:
+  - "streams"
+  - "pipeline"
+  - "247420"
+  - "anentrypoint"
+accent_from: "#56d364"
+accent_to: "#79c0ff"
+glyph: "≋"
+code: "076"
+category: "web"

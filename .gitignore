@@ -7,3 +7,6 @@ dist/
 .plugkit-agent-worktree/
 .code-search/
 *.stackdump
+.gm/
+.codeinsight/
+rs-learn.db
