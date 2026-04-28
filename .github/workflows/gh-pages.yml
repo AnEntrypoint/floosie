@@ -15,11 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm install purgecss rippleui --no-save
-      - run: node scripts/build.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs
