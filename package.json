@@ -1,6 +1,6 @@
 {
   "name": "floosie",
-  "version": "0.6.13",
+  "version": "0.6.14",
   "type": "module",
   "description": "Universal stream processing platform — pipe anything to anything",
   "exports": {
