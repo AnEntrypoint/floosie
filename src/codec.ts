@@ -1,10 +1,12 @@
 import type { Chunk, ChunkType } from "./chunk-types.js";
-import type { ChunkCodec } from "./codec-types.js";
 import { TEXT_CODECS } from "./codec-text.js";
 import { BINARY_CODECS } from "./codec-binary.js";
 import { STRUCTURED_CODECS } from "./codec-structured.js";
 
-export type { ChunkCodec } from "./codec-types.js";
+export type ChunkCodec<T extends Chunk = Chunk> = {
+  encode(chunk: T): Uint8Array;
+  decode(bytes: Uint8Array, meta?: Record<string, unknown>): T;
+};
 
 export const CODECS: { [K in ChunkType]: ChunkCodec<Extract<Chunk, { type: K }>> } = {
   ...TEXT_CODECS,

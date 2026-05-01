@@ -1,3 +1,15 @@
+### 0.7.2 — 2026-05-01
+- Re-architecture round 2 — further policy alignment
+- Remove src/chunk.ts (dead re-export shim); 11 callers retargeted to chunk-types/chunk-factories directly
+- Fold src/codec-types.ts (6L) into src/codec.ts; ChunkCodec lives next to CODECS
+- Promote createAsyncQueue from ws-frame.ts to streams.ts; ws-frame.ts re-exports
+- Add eslint flat config (max-lines, no-warning-comments, no-unused-vars, no-unreachable); `npm run lint`
+- Fix-on-sight: drop unused sflow import in acp.ts, unused dv in codec-binary.ts decode, unused A type param in pipeline.ts
+- Add .github/workflows/test.yml — CI runs tsc + node test.js on push and PR
+- Rewrite README.md for v0.7 surface (buffer, debug, mri, createProcessorActor; remove ProcessorMachine references)
+- Add docs/index.html for GitHub Pages
+- Memorize agents now persist xstate replacement, debug naming policy, text-codec newline-framing caveat in AGENTS.md and rs-learn
+
 ### 0.7.0 — 2026-05-01
 - Re-architecture pass for policy alignment
 - Drop xstate dep — replaced ProcessorMachine with 50-line dispatch-table actor in src/machine.ts

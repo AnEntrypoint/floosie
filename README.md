@@ -2,147 +2,169 @@
 
 Universal stream processing platform. Pipe anything to anything.
 
-Built on [sflow](https://www.npmjs.com/package/sflow) with [ACP](https://www.npmjs.com/package/@agentclientprotocol/sdk) support.
-
-## Install
+Built on [sflow](https://www.npmjs.com/package/sflow) with a 98-type chunk model, byte-level utilities, observability, WebSocket bridging, ACP bridging, and a CLI.
 
 ```sh
-npm install
+npm install floosie
 ```
 
 ## Quick start
 
 ```ts
-import { createProcessor, json, text } from "./src/index.js";
-import type { JsonChunk, TextChunk } from "./src/index.js";
+import { createProcessor, json, text } from "floosie";
 
-const upper = createProcessor<JsonChunk<{ msg: string }>, TextChunk>({
+const upper = createProcessor({
   name: "upper",
   input: (async function* () {
     yield json({ msg: "hello" });
     yield json({ msg: "world" });
   })(),
-  transform: (flow) => flow.map((chunk) => text(chunk.data.msg.toUpperCase())),
+  transform: (flow) => flow.map((c) => text(String(c.data.msg).toUpperCase())),
 });
 
-const exclaim = createProcessor<TextChunk, TextChunk>({
-  name: "exclaim",
-  transform: (flow) => flow.map((chunk) => text(chunk.data + "!!!")),
-});
-
-for await (const chunk of upper.pipe(exclaim).output) {
-  console.log(chunk.data); // HELLO!!!  WORLD!!!
-}
+for await (const c of upper.output) console.log(c.data);
+// HELLO
+// WORLD
 ```
 
-## Chunk types (98)
+## CLI
 
-### Structured / JSON
-`json`, `raw`, `ndjson`, `rpc`, `event`, `span`, `metric`, `log`, `command`, `patch`, `token`, `error`, `signal`,
-`socketio`, `envelope`, `ack`, `nack`, `ast`, `hash`, `timeseries`, `ohlcv`, `adjacency`
+```sh
+floosie pipe --in file:data.json --out ws://localhost:7878
+floosie bridge --port 7878
+floosie mux --urls ws://a:7878,ws://b:7878 --strategy round-robin
+floosie inspect data.bin
+cat data | floosie pipe --in stdio --type json --out file:out.ndjson
+```
 
-### Text / Markup
-`text`, `delta`, `uuid`, `jwt`, `xml`, `yaml`, `markdown`, `html`, `sql`, `geojson`, `graphql`, `csv`,
-`toml`, `ini`, `jsonschema`, `avroschema`, `sourcemap`, `shader`, `obj`, `subtitle`, `playlist`, `graphml`
+Sources / sinks: `file:<path>`, `ws://<url>`, `wss://<url>`, `stdio` (default).
 
-### Network / Protocol
-`http-request`, `http-response`, `websocket`, `sse`, `dns`, `dhcp`, `icmp`
+## Pillars
 
-### Binary / Media (mime auto-detected)
-`binary`, `image`, `video`, `audio`, `pdf`, `archive`,
-`protobuf`, `msgpack`, `cbor`, `arrow`, `parquet`,
-`wasm`, `font`, `onnx`, `safetensors`, `epub`, `docx`, `xlsx`, `pptx`, `gltf`, `qrcode`
+### Chunks (98 types)
+Structured (`json`, `ndjson`, `rpc`, `event`, `metric`, `log`, `command`, `patch`, `token`, `error`, `signal`, …),
+text (`text`, `markdown`, `xml`, `yaml`, `html`, `sql`, `csv`, `geojson`, `graphql`, …),
+network (`http-request`, `http-response`, `websocket`, `sse`, `dns`, `dhcp`, `icmp`),
+binary/media (`image`, `video`, `audio`, `pdf`, `archive`, `protobuf`, `msgpack`, `cbor`, `arrow`, `parquet`, `wasm`, `font`, `onnx`, `safetensors`, `epub`, `docx`, `xlsx`, `pptx`, `gltf`, `qrcode`, …),
+binary with JSON header (`frame`, `multipart`, `ciphertext`, `signature`, `hmac`, `keypair`, `certificate`, `tensor`, `pointcloud`, `webtransport`),
+scalars (`uint8`/`int8`/`int16`/`uint16`/`int32`/`uint32`/`int64`/`uint64`/`float32`/`float64`/`bool`/`timestamp`/`complex64`/`complex128`/`null`),
+embedding (Float32Array).
 
-### Binary with JSON header
-`frame`, `multipart`, `ciphertext`, `signature`, `hmac`, `keypair`, `certificate`, `tensor`, `pointcloud`, `webtransport`
+Each chunk type ships an `encode`/`decode` codec; `encodeChunk(c)` and `decodeChunk(type, bytes, meta?)` use the registry. Binary decode auto-populates `meta.mime`.
 
-### Scalars
-`uint8`, `int8`, `int16`, `uint16`, `int32`, `uint32`, `int64` (bigint), `uint64` (bigint),
-`float32`, `float64`, `bool`, `timestamp`, `complex64`, `complex128`, `null`
-
-### Embedding
-`embedding` (Float32Array)
-
-Binary decode populates `meta.mime` automatically via magic-byte detection (38 signatures). Use `detectFile()` for rich async detection (183 formats via file-type).
-
-## Stream Operators
-
-`src/operators.ts` provides typed `StreamNode` factories for pipeline composition:
+### Processors and pipelines
 
 ```ts
-import { mux, split, gate, scan, zip, batch, window, throttle, debounce, take, drop, distinct, parallel, withBackpressure } from "./src/index.js";
+import { createProcessor, pipe, registry } from "floosie";
+
+const a = createProcessor({ name: "a", transform: (f) => f.map(...) });
+const b = createProcessor({ name: "b", transform: (f) => f.filter(...) });
+const composed = a.pipe(b);
+for await (const c of composed.output) ...
+registry.snapshot(); // [{ name, status, chunksIn, chunksOut, errors, uptimeMs }, …]
+```
+
+Lifecycle is a 4-state actor in `src/machine.ts` — `idle → running → error | stopped` — usable directly via `createProcessorActor(name)`.
+
+### Operators
+
+```ts
+import { mux, split, gate, scan, zip, batch, window, throttle, debounce,
+         take, drop, distinct, parallel, withBackpressure } from "floosie";
 ```
 
 | operator | description |
-|----------|-------------|
+|---|---|
 | `mux(...sources)` | merge N input streams (interleaved) |
-| `split(flow, n)` | fan-out one stream to N branches |
-| `gate(pred)` | async predicate filter / blocking gate |
-| `scan(fn, seed)` | running accumulator, emits each intermediate value |
+| `split(flow, n)` | fan-out one stream into N branches |
+| `gate(pred)` | async predicate filter |
+| `scan(fn, seed)` | running accumulator |
 | `zip(...sources)` | combine N streams into tuples |
-| `batch(n)` | group into fixed-size arrays |
-| `window(ms)` | group by time interval |
-| `throttle(ms)` | rate limit |
-| `debounce(ms)` | emit last value after quiet period |
-| `take(n)` | first N items |
-| `drop(n)` | skip first N items |
-| `distinct(keyFn?)` | deduplicate consecutive |
+| `batch(n)` / `window(ms)` | group by count or time |
+| `throttle(ms)` / `debounce(ms)` | rate-limit |
+| `take(n)` / `drop(n)` / `distinct(keyFn?)` | classic combinators |
 | `parallel(fn, n)` | concurrent async map |
 | `withBackpressure(hwm)` | pause upstream at high-water mark |
 
-## API
+### Buffer utilities (`floosie/buffer`)
 
-### `createProcessor(config)`
+Codec-style helpers for the byte layer:
 
 ```ts
-createProcessor<I, O>({
-  name: string,
-  input?: AsyncIterable<Chunk> | ReadableStream<Chunk> | null,  // null = stdin
-  transform: (flow: sflow<I>) => sflow<O>,
-  output?: WritableStream<Chunk> | null,  // null = stdout
-})
+import { toHex, fromHex, toBase64, fromBase64, toBase64Url, toBase32,
+         concat, slice, indexOf, splitBytes, equals, hexdump,
+         digest, hmacDigest, rand,
+         gzip, gunzip, brotli, unbrotli, compress, decompress,
+         rechunk, splitOn, mapBytes, tap } from "floosie";
 ```
 
-Returns `ProcessorHandle` with `.pipe(next)`, `.start()`, `.stop()`, `.output` / `.stdout` (normal chunks), `.stderr` (`error`/`signal` chunks routed separately).
+`rechunk(size)` repacks a byte stream into fixed-size frames; `splitOn(sep)` splits on an arbitrary delimiter; `digest`/`hmacDigest` hash via `node:crypto`; `gzip`/`brotli` via `node:zlib`. `hexdump(b)` produces classic offset/hex/ASCII output.
 
-### `pipe(...nodes)`
+### Observability (`floosie/debug`)
 
-Compose `StreamNode`s: `pipe(a, b, c)` = `a → b → c`.
+```ts
+import { debugSnapshot, debugLog, debugLogs, setLogSink } from "floosie";
 
-### `stdioProcessor(config)`
-
-Wraps a processor to read stdin / write stdout. `error`/`signal` chunks write to `process.stderr`; all other types write to `process.stdout`. Framing auto-selected by `inputType`.
-
-### `acpProcessor(conn, name, transform)`
-
-Wraps an ACP `AgentSideConnection` as source and sink.
-
-### `detectMime(data: Uint8Array): string`
-
-Sync magic-byte detection (38 signatures). Returns MIME type or `application/octet-stream`. Used in codec decode path.
-
-### `detectFile(data: Uint8Array): Promise<FileInfo>`
-
-Async rich detection via [file-type](https://www.npmjs.com/package/file-type) (183 formats) + BOM detection + text heuristics. Returns `{ mime, ext?, charset?, description? }`.
-
-### `splitStream(iter)`
-
-Fan-out an `AsyncIterable<Chunk>` into `{ stdout, stderr }` — `error`/`signal` chunks route to stderr, all others to stdout.
-
-### `ProcessorMachine`
-
-XState v5 state machine for processor lifecycle: `idle → running → error | stopped`. Exported for external inspection or extension.
-
-### `registry.snapshot()`
-
-Returns all live processor states: `name`, `status`, `chunksIn`, `chunksOut`, `errors`, `uptimeMs`.
-
-## Shell piping
-
-Processors behave like CLI programs:
-
-```sh
-node proc-a.js | node proc-b.js | node proc-c.js
+debugLog("my-subsystem", "info", "started");
+debugSnapshot();    // { ts, processors, recentLogs, totals }
+debugLogs();        // last 200 entries (ring buffer)
+setLogSink((e) => myObserver(e));
 ```
 
-Normal chunks flow through `stdout`; `error`/`signal` chunks flow through `stderr`. Framing is transparent to transform functions — ndjson for structured types, length-prefix for binary, newline for text.
+Registry lifecycle transitions auto-emit log entries with `subsystem: "registry"`.
+
+### MIME detection
+
+```ts
+import { detectMime, detectFile, mimeToChunkType } from "floosie";
+
+detectMime(bytes);         // sync, critical-path; returns MIME or "application/octet-stream"
+await detectFile(bytes);   // async, 183 formats via file-type
+mimeToChunkType("image/png"); // "image"
+```
+
+### WebSocket bridging
+
+```ts
+import { wsSource, wsSink, wsBridge, muxWsClients,
+         encodeWsFrame, decodeWsFrame } from "floosie";
+
+const server = await wsBridge({ port: 7878 });
+server.broadcast(json({ hello: "world" }));
+for await (const c of server.source()) ...
+
+const remote = wsSource("ws://other:7878");
+await wsSink("ws://elsewhere:7878", remote);
+
+const fanout = await muxWsClients(["ws://a", "ws://b", "ws://c"]);
+fanout.send(chunk, "round-robin"); // or "broadcast" or "hash"
+```
+
+### ACP
+
+```ts
+import { acpSource, acpSink, acpProcessor } from "floosie/acp";
+```
+
+Wraps an `AgentSideConnection` as a source / sink, or as a full processor.
+
+### File I/O
+
+```ts
+import { fileSource, fileLineSource, fileSink } from "floosie";
+
+for await (const c of fileSource("data.json")) ...    // auto-detects mime
+for await (const c of fileLineSource("logs.ndjson")) ... // newline-framed
+await fileSink("out.ndjson", iter);
+```
+
+## Sub-path exports
+
+`floosie`, `floosie/acp`, `floosie/stdio`, `floosie/registry`, `floosie/debug`, `floosie/buffer`, `floosie/file`, `floosie/ws`, `floosie/cli`, `floosie/auto`.
+
+## Status
+
+- Single integration test: `node test.js`
+- TypeScript strict, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`
+- Lint: `npm run lint`
+- Build: `npm run build`

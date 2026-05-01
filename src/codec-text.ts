@@ -1,5 +1,5 @@
 import type { Chunk } from "./chunk-types.js";
-import type { ChunkCodec } from "./codec-types.js";
+import type { ChunkCodec } from "./codec.js";
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();

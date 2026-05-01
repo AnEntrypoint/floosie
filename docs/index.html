@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>floosie — universal stream processing</title>
+<style>
+  body { font: 16px/1.55 -apple-system,BlinkMacSystemFont,Segoe UI,system-ui,sans-serif; max-width: 760px; margin: 2.5rem auto; padding: 0 1.25rem; color: #222; }
+  h1 { margin: 0 0 .25em; }
+  h2 { margin-top: 2em; border-bottom: 1px solid #eee; padding-bottom: .25em; }
+  pre { background: #f5f5f7; padding: .9em 1em; border-radius: 6px; overflow-x: auto; font-size: 14px; }
+  code { background: #f0f0f3; padding: 1px 4px; border-radius: 3px; font-size: 14px; }
+  pre code { background: transparent; padding: 0; }
+  a { color: #0070d8; }
+  ul { padding-left: 1.25em; }
+  .hint { color: #666; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>floosie</h1>
+<p>Universal stream processing platform. Pipe anything to anything. Built on <a href="https://www.npmjs.com/package/sflow">sflow</a> with a 98-type chunk model, byte-level utilities, observability, WebSocket and ACP bridging, and a CLI.</p>
+
+<p><a href="https://github.com/AnEntrypoint/floosie">Repository</a> · <a href="https://www.npmjs.com/package/floosie">npm</a></p>
+
+<h2>Install</h2>
+<pre><code>npm install floosie</code></pre>
+
+<h2>Quick start</h2>
+<pre><code>import { createProcessor, json, text } from "floosie";
+
+const upper = createProcessor({
+  name: "upper",
+  input: (async function* () {
+    yield json({ msg: "hello" });
+    yield json({ msg: "world" });
+  })(),
+  transform: (flow) =&gt; flow.map((c) =&gt; text(String(c.data.msg).toUpperCase())),
+});
+
+for await (const c of upper.output) console.log(c.data);</code></pre>
+
+<h2>CLI</h2>
+<pre><code>floosie pipe --in file:data.json --out ws://localhost:7878
+floosie bridge --port 7878
+floosie mux --urls ws://a:7878,ws://b:7878 --strategy round-robin
+floosie inspect data.bin</code></pre>
+
+<h2>Pillars</h2>
+<ul>
+  <li><strong>Chunks</strong> — 98 typed payloads with codecs, MIME auto-detection, structured/binary/scalar/embedding families.</li>
+  <li><strong>Processors</strong> — composable transforms with lifecycle, registry, stdout/stderr split, ACP bridge.</li>
+  <li><strong>Operators</strong> — mux, split, gate, scan, zip, batch, window, throttle, debounce, take, drop, distinct, parallel, withBackpressure.</li>
+  <li><strong>Buffer utilities</strong> — hex/base64/base32, hash, hmac, gzip/brotli, hexdump, rechunk, splitOn.</li>
+  <li><strong>Observability</strong> — <code>debugSnapshot()</code>, <code>debugLog()</code>, ring-buffered logs, registry transitions.</li>
+  <li><strong>WebSocket</strong> — <code>wsSource</code>, <code>wsSink</code>, <code>wsBridge</code>, <code>muxWsClients</code> with round-robin / broadcast / hash strategies.</li>
+</ul>
+
+<p class="hint">For the full API surface, see the <a href="https://github.com/AnEntrypoint/floosie#readme">README on GitHub</a>.</p>
+</body>
+</html>

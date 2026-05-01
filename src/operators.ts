@@ -1,5 +1,5 @@
 import { sflow } from "sflow";
-import type { Chunk } from "./chunk.js";
+import type { Chunk } from "./chunk-types.js";
 import { createNode, type StreamNode } from "./node.js";
 
 export function mux<T extends Chunk>(...sources: AsyncIterable<T>[]): StreamNode<never, T> {

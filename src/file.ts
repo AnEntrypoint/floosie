@@ -1,6 +1,6 @@
 import { createReadStream, createWriteStream } from "node:fs";
 import { readFile } from "node:fs/promises";
-import type { Chunk, ChunkType } from "./chunk.js";
+import type { Chunk, ChunkType } from "./chunk-types.js";
 import { decodeChunk, encodeChunk } from "./codec.js";
 import { detectFile, mimeToChunkType } from "./mime.js";
 

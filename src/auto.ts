@@ -1,4 +1,4 @@
-import type { Chunk } from "./chunk.js";
+import type { Chunk } from "./chunk-types.js";
 import { decodeChunk } from "./codec.js";
 import { detectMime, detectFile, mimeToChunkType } from "./mime.js";
 

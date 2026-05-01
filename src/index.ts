@@ -48,8 +48,8 @@ export {
   int8, int16, uint16, uint32, int64, uint64, float32, complex64, complex128,
 } from "./chunk-factories.js";
 
-export type { ChunkCodec } from "./codec-types.js";
 export { CODECS, encodeChunk, decodeChunk } from "./codec.js";
+export type { ChunkCodec } from "./codec.js";
 
 export type { FlowFn, StreamNode } from "./node.js";
 export { createNode, identityNode } from "./node.js";
@@ -65,8 +65,8 @@ export { registry } from "./registry.js";
 export type { ProcessorContext, ProcessorEvent, ProcessorActor } from "./machine.js";
 export { createProcessorActor } from "./machine.js";
 
-export type { StreamSplit } from "./streams.js";
-export { splitStream } from "./streams.js";
+export type { StreamSplit, AsyncQueue } from "./streams.js";
+export { splitStream, createAsyncQueue } from "./streams.js";
 
 export type { FileInfo } from "./mime.js";
 export { detectMime, detectFile, mimeToChunkType } from "./mime.js";

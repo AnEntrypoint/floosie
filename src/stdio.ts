@@ -1,5 +1,5 @@
 import { sflow } from "sflow";
-import type { Chunk, ChunkType } from "./chunk.js";
+import type { Chunk, ChunkType } from "./chunk-types.js";
 import { encodeChunk, decodeChunk } from "./codec.js";
 import { createProcessor, type ProcessorConfig, type ProcessorHandle } from "./processor.js";
 

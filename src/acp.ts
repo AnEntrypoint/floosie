@@ -1,7 +1,6 @@
-import { sflow } from "sflow";
 import type { AgentSideConnection } from "@agentclientprotocol/sdk";
-import type { Chunk } from "./chunk.js";
-import { json } from "./chunk.js";
+import type { Chunk } from "./chunk-types.js";
+import { json } from "./chunk-factories.js";
 import { createProcessor, type ProcessorHandle } from "./processor.js";
 import type { FlowFn } from "./node.js";
 

@@ -1,9 +1,9 @@
-import type { Chunk } from "./chunk.js";
+import type { Chunk } from "./chunk-types.js";
 import type { StreamNode } from "./node.js";
 import { createNode } from "./node.js";
 import { sflow } from "sflow";
 
-export function pipe<A extends Chunk>(...nodes: []): never;
+export function pipe(...nodes: []): never;
 export function pipe<A extends Chunk, B extends Chunk>(a: StreamNode<A, B>): StreamNode<A, B>;
 export function pipe<A extends Chunk, B extends Chunk, C extends Chunk>(
   a: StreamNode<A, B>,

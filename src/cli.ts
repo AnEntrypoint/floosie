@@ -1,5 +1,5 @@
 import mri from "mri";
-import type { Chunk, ChunkType } from "./chunk.js";
+import type { Chunk, ChunkType } from "./chunk-types.js";
 import { decodeChunk, encodeChunk } from "./codec.js";
 import { fileSource, fileSink } from "./file.js";
 import { autoDecodeAsync } from "./auto.js";

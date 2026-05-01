@@ -1,5 +1,5 @@
 import type { Chunk, FrameData, MultipartData, CiphertextData, SignatureData, HmacData, KeypairData, CertificateData, TensorData, PointcloudData, WebTransportData } from "./chunk-types.js";
-import type { ChunkCodec } from "./codec-types.js";
+import type { ChunkCodec } from "./codec.js";
 import { detectMime } from "./mime.js";
 
 const pass = <K extends
@@ -110,7 +110,7 @@ const COMPLEX_CODEC = <K extends "complex64"|"complex128">(type: K, fw: (v: numb
   type T = Extract<Chunk, { type: K }>;
   return {
     encode: (c) => { const d = c as { data: { re: number; im: number } }; const out = new Uint8Array(sz*2); out.set(fw(d.data.re),0); out.set(fw(d.data.im),sz); return out; },
-    decode: (b, meta) => { const dv = new DataView(b.buffer, b.byteOffset); const data = { re: fr(b, 0), im: fr(b, sz) }; return (meta !== undefined ? { type, data, meta } : { type, data }) as T; },
+    decode: (b, meta) => { const data = { re: fr(b, 0), im: fr(b, sz) }; return (meta !== undefined ? { type, data, meta } : { type, data }) as T; },
   };
 };
 

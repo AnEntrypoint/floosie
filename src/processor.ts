@@ -1,5 +1,5 @@
 import { sflow } from "sflow";
-import type { Chunk } from "./chunk.js";
+import type { Chunk } from "./chunk-types.js";
 import type { ErrorChunk, SignalChunk } from "./chunk-aliases.js";
 import type { FlowFn } from "./node.js";
 import { registry, type ProcessorState } from "./registry.js";

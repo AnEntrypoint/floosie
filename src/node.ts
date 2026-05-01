@@ -1,5 +1,5 @@
 import { sflow } from "sflow";
-import type { Chunk } from "./chunk.js";
+import type { Chunk } from "./chunk-types.js";
 
 export type FlowFn<I extends Chunk, O extends Chunk> = (flow: ReturnType<typeof sflow<I>>) => ReturnType<typeof sflow<O>>;
 

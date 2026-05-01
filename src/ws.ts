@@ -1,4 +1,4 @@
-import type { Chunk } from "./chunk.js";
+import type { Chunk } from "./chunk-types.js";
 import { encodeFrame, decodeFrame, toBytes, createAsyncQueue, type WSLike } from "./ws-frame.js";
 
 export { encodeFrame as encodeWsFrame, decodeFrame as decodeWsFrame };
@@ -98,7 +98,7 @@ export async function muxWsClients(urls: string[], WSImpl?: new (u: string) => W
       const frame = encodeFrame(chunk);
       if (strategy === "broadcast") { for (const s of sockets) s.send(frame); return; }
       if (strategy === "hash") {
-        const h = (key ?? chunk.type).split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0);
+        const h = (key ?? chunk.type).split("").reduce((a: number, c: string) => (a * 31 + c.charCodeAt(0)) | 0, 0);
         sockets[Math.abs(h) % sockets.length]?.send(frame);
         return;
       }
