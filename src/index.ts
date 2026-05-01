@@ -72,3 +72,11 @@ export type { FileInfo } from "./mime.js";
 export { detectMime, detectFile } from "./mime.js";
 
 export { mux, split, gate, scan, zip, withBackpressure, batch, window, throttle, debounce, take, drop, distinct, parallel } from "./operators.js";
+
+export {
+  toHex, fromHex, toBase64, fromBase64, toBase64Url, fromBase64Url, toBase32,
+  concat, slice, indexOf, splitBytes, equals, hexdump,
+  digest, hmacDigest, rand,
+  gzip, gunzip, deflate, inflate, brotli, unbrotli, compress, decompress,
+  rechunk, splitOn, tap, mapBytes,
+} from "./buffer.js";
