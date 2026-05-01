@@ -1,6 +1,6 @@
 {
   "name": "floosie",
-  "version": "0.6.16",
+  "version": "0.7.0",
   "type": "module",
   "description": "Universal stream processing platform — pipe anything to anything",
   "exports": {
@@ -8,6 +8,8 @@
     "./acp": "./dist/acp.js",
     "./stdio": "./dist/stdio.js",
     "./registry": "./dist/registry.js",
+    "./debug": "./dist/debug.js",
+    "./buffer": "./dist/buffer.js",
     "./file": "./dist/file.js",
     "./ws": "./dist/ws.js",
     "./cli": "./dist/cli.js",
@@ -23,15 +25,15 @@
   ],
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node test.js"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.19.0",
     "file-type": "^22.0.1",
+    "mri": "^1.2.0",
     "sflow": "latest",
-    "ws": "^8.20.0",
-    "xstate": "^5.30.0",
-    "zod": "^3.25.0"
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

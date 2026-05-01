@@ -1,3 +1,17 @@
+### 0.7.0 — 2026-05-01
+- Re-architecture pass for policy alignment
+- Drop xstate dep — replaced ProcessorMachine with 50-line dispatch-table actor in src/machine.ts
+- Drop zod dep (unused in src)
+- Replace hand-rolled parseArgs with `mri` in src/cli.ts
+- Collapse src/mime.ts (101 → 78 lines): hand-rolled magic-byte table reduced to critical sync path; detectFile delegates to file-type
+- Dedupe MIME_TO_TYPE map: single source of truth in src/mime.ts; auto.ts and file.ts import
+- Split src/ws.ts (238 lines) into ws.ts + ws-frame.ts (114 + 82); shared async-queue helper extracted to ws-frame.ts
+- Add src/debug.ts: structured log ring buffer, snapshot()/inspect() observability surface; registry transitions emit log entries
+- Add test.js single integration suite (140 lines, 4 combined groups: chunks+codecs+mime, processor+registry+lifecycle+debug, operators+buffer, file+stdio+ws+cli+frame)
+- Move src/example.ts → docs/examples/basic-pipeline.ts; remove test-ws.mjs
+- New subpath exports: ./debug, ./buffer
+- BREAKING: ProcessorMachine export removed; use createProcessorActor instead
+
 ### 0.6.3 — 2026-04-14
 - Perf: pass() decode skips detectMime() when meta.mime already present (0.43–0.98µs saved per call)
 - Perf: EMBEDDING_CODEC.decode uses zero-copy Float32Array view instead of buffer.slice copy (1.16µs → 0.10µs)

@@ -62,14 +62,26 @@ export { pipe, connect, source, sink } from "./pipeline.js";
 export type { ProcessorState, ProcessorStatus } from "./registry.js";
 export { registry } from "./registry.js";
 
-export type { ProcessorContext } from "./machine.js";
-export { ProcessorMachine } from "./machine.js";
+export type { ProcessorContext, ProcessorEvent, ProcessorActor } from "./machine.js";
+export { createProcessorActor } from "./machine.js";
 
 export type { StreamSplit } from "./streams.js";
 export { splitStream } from "./streams.js";
 
 export type { FileInfo } from "./mime.js";
-export { detectMime, detectFile } from "./mime.js";
+export { detectMime, detectFile, mimeToChunkType } from "./mime.js";
+
+export type { Severity, LogEntry, DebugSnapshot } from "./debug.js";
+export { log as debugLog, logs as debugLogs, clearLogs, snapshot as debugSnapshot, inspect as debugInspect, setLogSink } from "./debug.js";
+
+export { fileSource, fileLineSource, fileSink } from "./file.js";
+export { autoDecode, autoDecodeAsync } from "./auto.js";
+export {
+  wsSource, wsSink, wsBridge, muxWsClients,
+  encodeWsFrame, decodeWsFrame,
+} from "./ws.js";
+export type { WsBridgeServer, WsBridgeOptions, LoadBalanceStrategy, WSLike } from "./ws.js";
+export { runCli } from "./cli.js";
 
 export { mux, split, gate, scan, zip, withBackpressure, batch, window, throttle, debounce, take, drop, distinct, parallel } from "./operators.js";
 

@@ -2,44 +2,15 @@ import { createReadStream, createWriteStream } from "node:fs";
 import { readFile } from "node:fs/promises";
 import type { Chunk, ChunkType } from "./chunk.js";
 import { decodeChunk, encodeChunk } from "./codec.js";
-import { detectFile } from "./mime.js";
-
-const MIME_TO_TYPE: Record<string, ChunkType> = {
-  "application/json": "json",
-  "application/x-ndjson": "ndjson",
-  "text/csv": "csv",
-  "application/xml": "xml",
-  "text/xml": "xml",
-  "text/html": "html",
-  "text/markdown": "markdown",
-  "text/plain": "text",
-  "application/x-yaml": "yaml",
-  "application/yaml": "yaml",
-  "application/sql": "sql",
-  "image/jpeg": "image", "image/png": "image", "image/gif": "image",
-  "image/webp": "image", "image/bmp": "image", "image/tiff": "image",
-  "image/avif": "image", "image/x-icon": "image",
-  "video/mp4": "video", "video/webm": "video", "video/mpeg": "video",
-  "audio/mpeg": "audio", "audio/ogg": "audio", "audio/flac": "audio",
-  "application/pdf": "pdf",
-  "application/zip": "archive", "application/gzip": "archive",
-  "application/x-bzip2": "archive", "application/x-xz": "archive",
-  "application/x-7z-compressed": "archive", "application/x-rar-compressed": "archive",
-  "application/wasm": "wasm",
-  "application/vnd.apache.arrow.file": "arrow",
-  "application/vnd.apache.parquet": "parquet",
-};
+import { detectFile, mimeToChunkType } from "./mime.js";
 
 export async function* fileSource(path: string, type?: ChunkType): AsyncIterable<Chunk> {
-  if (type) {
-    const data = await readFile(path);
-    yield decodeChunk(type, new Uint8Array(data));
-    return;
-  }
-  const sniff = await readFile(path);
-  const info = await detectFile(new Uint8Array(sniff.subarray(0, Math.min(4096, sniff.length))));
-  const mapped = MIME_TO_TYPE[info.mime] ?? "binary";
-  yield decodeChunk(mapped, new Uint8Array(sniff), { mime: info.mime, path });
+  const data = await readFile(path);
+  const bytes = new Uint8Array(data);
+  if (type) { yield decodeChunk(type, bytes); return; }
+  const info = await detectFile(bytes.subarray(0, Math.min(4096, bytes.length)));
+  const meta: Record<string, unknown> = { mime: info.mime, path };
+  yield decodeChunk(mimeToChunkType(info.mime), bytes, meta);
 }
 
 export async function* fileLineSource(path: string): AsyncIterable<Chunk> {

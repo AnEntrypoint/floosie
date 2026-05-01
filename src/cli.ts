@@ -1,25 +1,11 @@
+import mri from "mri";
 import type { Chunk, ChunkType } from "./chunk.js";
 import { decodeChunk, encodeChunk } from "./codec.js";
 import { fileSource, fileSink } from "./file.js";
 import { autoDecodeAsync } from "./auto.js";
 import { wsSource, wsSink, wsBridge, muxWsClients, type LoadBalanceStrategy } from "./ws.js";
 
-type Args = { _: string[]; [k: string]: string | boolean | string[] };
-
-function parseArgs(argv: string[]): Args {
-  const out: Args = { _: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === undefined) continue;
-    if (a.startsWith("--")) {
-      const key = a.slice(2);
-      const next = argv[i + 1];
-      if (next !== undefined && !next.startsWith("--")) { out[key] = next; i++; }
-      else out[key] = true;
-    } else out._.push(a);
-  }
-  return out;
-}
+type Args = { _: string[]; [k: string]: string | boolean | string[] | undefined };
 
 const HELP = `floosie — universal stream pipe
 
@@ -158,7 +144,7 @@ const COMMANDS: Record<string, (a: Args) => Promise<void>> = {
 };
 
 export async function runCli(argv: string[]): Promise<void> {
-  const args = parseArgs(argv);
+  const args = mri(argv) as Args;
   const cmd = args._.shift() ?? "help";
   const fn = COMMANDS[cmd];
   if (!fn) { process.stderr.write(`unknown command: ${cmd}\n${HELP}`); process.exit(1); }

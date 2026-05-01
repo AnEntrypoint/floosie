@@ -1,5 +1,3 @@
-import { createMachine, assign } from "xstate";
-
 export type ProcessorStatus = "idle" | "running" | "error" | "stopped";
 
 export type ProcessorContext = {
@@ -8,25 +6,41 @@ export type ProcessorContext = {
   startedAt: number | null;
 };
 
-export const ProcessorMachine = createMachine({
-  id: "processor",
-  initial: "idle" as ProcessorStatus,
-  context: ({ input }: { input: { name: string } }): ProcessorContext => ({
-    name: input.name,
-    errors: [],
-    startedAt: null,
-  }),
-  states: {
-    idle:    { on: { START: "running" } },
-    running: {
-      on: {
-        STOP:     "stopped",
-        ERROR:    { target: "error", actions: assign({ errors: ({ context, event }: any) => [...context.errors, (event as any).message] }) },
-        COMPLETE: { target: "idle",  actions: assign({ startedAt: () => null }) },
-        START_AT: { actions: assign({ startedAt: ({ event }: any) => (event as any).ts }) },
-      },
+export type ProcessorEvent =
+  | { type: "START" }
+  | { type: "START_AT"; ts: number }
+  | { type: "STOP" }
+  | { type: "ERROR"; message: string }
+  | { type: "COMPLETE" }
+  | { type: "RESET" };
+
+const TRANSITIONS: Record<ProcessorStatus, Partial<Record<ProcessorEvent["type"], ProcessorStatus>>> = {
+  idle:    { START: "running" },
+  running: { STOP: "stopped", ERROR: "error", COMPLETE: "idle" },
+  error:   { RESET: "idle", STOP: "stopped" },
+  stopped: {},
+};
+
+export type ProcessorActor = {
+  status: ProcessorStatus;
+  context: ProcessorContext;
+  send(event: ProcessorEvent): void;
+  stop(): void;
+};
+
+export function createProcessorActor(name: string): ProcessorActor {
+  const actor: ProcessorActor = {
+    status: "idle",
+    context: { name, errors: [], startedAt: null },
+    send(event) {
+      if (event.type === "START_AT") { actor.context.startedAt = event.ts; return; }
+      const next = TRANSITIONS[actor.status][event.type];
+      if (!next) return;
+      if (event.type === "ERROR") actor.context.errors.push(event.message);
+      if (event.type === "COMPLETE") actor.context.startedAt = null;
+      actor.status = next;
     },
-    error:   { on: { RESET: "idle", STOP: "stopped" } },
-    stopped: { type: "final" },
-  },
-});
+    stop() { actor.status = "stopped"; },
+  };
+  return actor;
+}
