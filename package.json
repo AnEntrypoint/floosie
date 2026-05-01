@@ -7,11 +7,19 @@
     ".": "./dist/index.js",
     "./acp": "./dist/acp.js",
     "./stdio": "./dist/stdio.js",
-    "./registry": "./dist/registry.js"
+    "./registry": "./dist/registry.js",
+    "./file": "./dist/file.js",
+    "./ws": "./dist/ws.js",
+    "./cli": "./dist/cli.js",
+    "./auto": "./dist/auto.js"
   },
   "types": "./dist/index.d.ts",
+  "bin": {
+    "floosie": "bin/floosie.js"
+  },
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "scripts": {
     "build": "tsc",
@@ -21,11 +29,13 @@
     "@agentclientprotocol/sdk": "^0.19.0",
     "file-type": "^22.0.1",
     "sflow": "latest",
+    "ws": "^8.20.0",
     "xstate": "^5.30.0",
     "zod": "^3.25.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/ws": "^8.18.1",
     "typescript": "^5.8.0"
   }
 }
