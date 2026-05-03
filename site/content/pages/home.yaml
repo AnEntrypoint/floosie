@@ -2,32 +2,156 @@ id: home
 title: Home
 hero:
   heading: "floosie"
-  subheading: "universal stream processing platform"
-  body: "type-safe chunks, composable operators, CLI pipe semantics — pipe anything to anything. the stream-composition primitive under streamtts and friends."
+  subheading: "pipe anything to anything"
+  body: "98 typed chunks, 14 operators, one composable runtime. the stream-composition primitive under streamtts and friends — written so you can fuse mime-detected stdin, websockets, ACP agents, and ML tensors into a single pipe() chain without writing glue."
   badges:
     - { label: "98 chunk types" }
     - { label: "14 operators" }
     - { label: "ESM · TypeScript" }
-    - { label: "ACP · stdio · pipeline" }
+    - { label: "ACP · stdio · ws" }
+    - { label: "0 dep glue" }
   ctas:
     - { label: "GitHub", href: "https://github.com/AnEntrypoint/floosie", primary: true }
-    - { label: "npm", href: "https://www.npmjs.com/package/floosie" }
-    - { label: "Install", href: "https://github.com/AnEntrypoint/floosie#installation" }
+    - { label: "npm i floosie", href: "https://www.npmjs.com/package/floosie" }
+    - { label: "docs", href: "https://github.com/AnEntrypoint/floosie#readme" }
     - { label: "247420", href: "https://247420.xyz" }
 
-features:
-  heading: "why floosie"
+problem:
+  heading: "the pain you already know"
+  intro: "every non-trivial stream pipeline drifts into the same swamp. floosie is the answer to a problem you've solved badly four times already."
   items:
-    - { name: "typed chunks", desc: "every value in a flow is a discriminated-union chunk with codec + magic-byte mime detection.", meta: "98 types" }
-    - { name: "composable operators", desc: "mux, split, gate, scan, zip, batch, window, throttle, debounce, parallel — fuse cleanly with pipe().", meta: "14 ops" }
-    - { name: "stream-first", desc: "sflow under the hood — ReadableStream + AsyncIterable in one. lazy until consumed.", meta: "sflow" }
-    - { name: "stdio + ACP", desc: "drop-in stdin/stdout framing and AgentClientProtocol source/sink for agent pipelines.", meta: "adapters" }
-    - { name: "observable", desc: "registry tracks every processor; xstate lifecycle (idle/running/error/stopped) per actor.", meta: "registry" }
-    - { name: "zero-glue", desc: "one createProcessor() call autoselects framing by chunk type. no boilerplate.", meta: "sdk" }
+    - { cat: "flame", glyph: "◌", name: "untyped buffers", desc: "Buffer<unknown> flowing between stages. is this json? a frame? a tensor header? you'll find out at runtime." }
+    - { cat: "flame", glyph: "◌", name: "framing-by-hand", desc: "newline-delimited here, length-prefixed there, websocket envelopes elsewhere. each new sink is a fresh parser." }
+    - { cat: "flame", glyph: "◌", name: "no observability", desc: "console.log scattered through transforms. no per-stage counters, no lifecycle, no introspection." }
+    - { cat: "flame", glyph: "◌", name: "transport coupling", desc: "rewriting a pipeline because you swapped stdio for a websocket. the logic was fine; the plumbing leaked." }
+
+compare:
+  heading: "before / after"
+  intro: "the same job, written twice."
+  before:
+    label: "without floosie"
+    code: |
+      // read stdin → detect mime → maybe-parse json
+      // → filter → maybe-reframe → write ndjson
+      const chunks = [];
+      process.stdin.on('data', b => chunks.push(b));
+      process.stdin.on('end', () => {
+        const buf = Buffer.concat(chunks);
+        const mime = sniffMimeSomehow(buf);          // ad-hoc
+        const parsed = mime === 'application/json'
+          ? JSON.parse(buf)                          // throws? oh well
+          : { raw: buf.toString() };
+        if (parsed.score > 0.9) {
+          const out = JSON.stringify(parsed) + '\n'; // hand-framing
+          process.stdout.write(out);
+        }
+      });
+  after:
+    label: "with floosie"
+    code: |
+      import { createProcessor, gate } from "floosie";
+      import { stdinTypedSource, ndjsonStdoutSink } from "floosie/stdio";
+
+      createProcessor({
+        name: "filter",
+        input: stdinTypedSource(),                   // mime-detected chunks
+        transform: (f) => f.through(gate(c => c.data.score > 0.9)),
+        output: ndjsonStdoutSink(),                  // framed for you
+      });
+
+when:
+  heading: "when to reach for floosie"
+  intro: "five shapes of problem where floosie pays for itself in the first hour."
+  items:
+    - { cat: "kit",      name: "agent pipelines", desc: "an LLM emits tokens, your code routes by type — text vs tool-call vs error. ACP source/sink already wraps it.", meta: "acp" }
+    - { cat: "deck",     name: "media transforms", desc: "image/video/audio/pdf flowing through detectors, encoders, sinks. file-type does the magic-byte work; you write the verbs.", meta: "media" }
+    - { cat: "preview",  name: "ml inference fans", desc: "tensors and embeddings as first-class chunks. parallel(fn, n) caps concurrency without juggling promises.", meta: "ml" }
+    - { cat: "doc",      name: "observability streams", desc: "metrics, spans, logs, events as typed chunks. mux N sources, batch by time, route by category.", meta: "telemetry" }
+    - { cat: "external", name: "websocket fan-in/out", desc: "muxWsClients() merges N upstreams into one chunk flow. wsBridge serves as a typed broadcast.", meta: "ws" }
+
+how:
+  heading: "how it actually works"
+  intro: "three primitives. you'll have the mental model in the time it takes to read this panel."
+  steps:
+    - { rank: "01", glyph: "▣", name: "chunk", desc: "every value in a flow is { type, data, meta }. the type is one of 98, the codec round-trips it, mime is auto-detected on binary." }
+    - { rank: "02", glyph: "◎", name: "processor", desc: "createProcessor({ name, input, transform, output }) — the actor. transform is a sflow pipeline. lifecycle is idle/running/error/stopped, observed by the registry." }
+    - { rank: "03", glyph: "▰", name: "operator", desc: "mux/split/gate/scan/zip/batch/window/throttle/debounce/parallel — each is a typed StreamNode. fuse with .through(). nothing else." }
+
+recipes:
+  heading: "recipes you can paste"
+  intro: "four real pipelines, each under 12 lines."
+  items:
+    - cat: "kit"
+      name: "stdin → typed chunks → ndjson stdout"
+      desc: "the cli pipe. mime-sniffed, type-routed, framed for you."
+      code: |
+        import { stdinTypedSource, ndjsonStdoutSink } from "floosie/stdio";
+        import { createProcessor } from "floosie";
+        createProcessor({
+          name: "passthrough",
+          input: stdinTypedSource(),
+          transform: (f) => f,
+          output: ndjsonStdoutSink(),
+        });
+    - cat: "preview"
+      name: "fan N websockets into one stream"
+      desc: "muxWsClients with round-robin or hash routing."
+      code: |
+        import { muxWsClients } from "floosie";
+        const fan = await muxWsClients(["ws://a:7878","ws://b:7878"]);
+        for await (const c of fan.source()) console.log(c.type, c.meta?.mime);
+    - cat: "deck"
+      name: "concurrent classify with backpressure"
+      desc: "parallel caps concurrency, gate filters on score, withBackpressure protects upstream."
+      code: |
+        import { createProcessor, gate, parallel, withBackpressure } from "floosie";
+        createProcessor({
+          name: "classifier",
+          transform: (f) => f
+            .through(withBackpressure(64))
+            .through(parallel(classify, 4))
+            .through(gate(c => c.data.score > 0.9)),
+        });
+    - cat: "doc"
+      name: "ACP agent as a stream source"
+      desc: "AgentClientProtocol → typed chunks. plug it into any operator chain."
+      code: |
+        import { acpSource } from "floosie/acp";
+        for await (const c of acpSource(connection)) {
+          if (c.type === "token") write(c.data);
+          if (c.type === "error") report(c.data);
+        }
+
+audience:
+  heading: "who this is for"
+  intro: "three honest reads of fit."
+  items:
+    - { cat: "kit",     name: "you ship agent runtimes", desc: "if streamtts, an LLM gateway, or any AgentClientProtocol consumer is on your roadmap, floosie is the layer you would have built." }
+    - { cat: "deck",    name: "you do byte-level work", desc: "media transcoders, protocol bridges, telemetry routers. you spend more time on framing than logic. stop." }
+    - { cat: "preview", name: "you want one mental model", desc: "if you've written 'this is the third time i've reframed ndjson', the third time should be an import, not a parser." }
+
+operators:
+  heading: "operators"
+  intro: "all 14 are typed StreamNode factories. compose with pipe() / .through(). nothing else to learn."
+  items:
+    - { name: "mux(...sources)",         desc: "merge N async sources into one interleaved flow" }
+    - { name: "split(flow, n)",          desc: "fan-out one stream into N independent branches" }
+    - { name: "gate(pred)",              desc: "async predicate filter — keep only items that pass" }
+    - { name: "scan(fn, seed)",          desc: "running accumulator — emit state after each item" }
+    - { name: "zip(...sources)",         desc: "combine N sources into tuples, stop at shortest" }
+    - { name: "withBackpressure(hwm)",   desc: "pause upstream when in-flight count exceeds HWM" }
+    - { name: "batch(n)",                desc: "collect items into fixed-size arrays" }
+    - { name: "window(ms)",              desc: "collect items into time-bounded arrays" }
+    - { name: "throttle(ms)",            desc: "pass at most one item per interval" }
+    - { name: "debounce(ms)",            desc: "suppress items until quiet for ms" }
+    - { name: "take(n)",                 desc: "emit first N items then close" }
+    - { name: "drop(n)",                 desc: "skip first N items" }
+    - { name: "distinct(keyFn?)",        desc: "deduplicate consecutive equal items" }
+    - { name: "parallel(fn, n)",         desc: "concurrent async map with concurrency limit" }
 
 chunks:
-  heading: "chunk types"
-  intro: "every value in a floosie stream is a typed chunk. 98 built-in types span media, text, network protocols, ML tensors, cryptographic primitives, and numeric scalars."
+  heading: "the 98 chunk types"
+  intro: "every value in a floosie stream is a typed chunk with a codec, a mime hint, and a place in the discriminated union. 98 built-ins span media, text, network protocols, ML tensors, cryptographic primitives, and numeric scalars — and you can register your own."
   groups:
     - heading: "media & docs"
       items: ["binary","image","video","audio","pdf","archive","wasm","font","onnx","safetensors","epub","docx","xlsx","pptx","gltf","qrcode"]
@@ -48,40 +172,21 @@ chunks:
     - heading: "structured"
       items: ["frame","patch","multipart"]
 
-operators:
-  heading: "stream operators"
-  intro: "all operators are typed StreamNode factories that compose cleanly with pipe()."
-  items:
-    - { name: "mux(...sources)", desc: "merge N async sources into one interleaved stream" }
-    - { name: "split(flow, n)", desc: "fan-out: clone stream into N independent branches" }
-    - { name: "gate(pred)", desc: "filter with async predicate" }
-    - { name: "scan(fn, seed)", desc: "running accumulator — emit state after each item" }
-    - { name: "zip(...sources)", desc: "combine N sources into tuples, stopping at shortest" }
-    - { name: "withBackpressure(hwm)", desc: "pause upstream when in-flight count exceeds HWM" }
-    - { name: "batch(n)", desc: "collect items into fixed-size arrays" }
-    - { name: "window(ms)", desc: "collect items into time-bounded arrays" }
-    - { name: "throttle(ms)", desc: "pass at most one item per interval" }
-    - { name: "debounce(ms)", desc: "suppress items until quiet for ms" }
-    - { name: "take(n)", desc: "emit first N items then close" }
-    - { name: "drop(n)", desc: "skip first N items" }
-    - { name: "distinct()", desc: "deduplicate consecutive equal items" }
-    - { name: "parallel(fn, n)", desc: "concurrent async map with concurrency limit" }
-
 quickstart:
   heading: "quick start"
   lines:
     - { kind: "cmt", text: "install" }
     - { kind: "cmd", text: "npm i floosie" }
     - { kind: "cmt", text: "" }
-    - { kind: "cmt", text: "source" }
-    - { kind: "cmd", text: "git clone https://github.com/AnEntrypoint/floosie.git" }
+    - { kind: "cmt", text: "pipe anything → typed chunks → ndjson" }
+    - { kind: "cmd", text: "echo '{\"score\":0.97}' | npx floosie auto" }
     - { kind: "cmt", text: "" }
-    - { kind: "cmt", text: "pipe stdin → typed chunks → stdout" }
-    - { kind: "cmd", text: "echo hello | npx floosie auto" }
+    - { kind: "cmt", text: "or bridge a websocket" }
+    - { kind: "cmd", text: "npx floosie bridge --port 7878" }
 
 usage:
-  heading: "usage"
-  intro: "compose a typed processor — autodetect framing by chunk type, fuse transforms with pipe()."
+  heading: "the 8-line tour"
+  intro: "one createProcessor, one transform, framing handled."
   code: |
     import { createProcessor, json, gate, parallel } from "floosie";
 
@@ -95,9 +200,11 @@ usage:
     });
 
 examples:
-  heading: "examples"
+  heading: "go deeper"
   items:
-    - { name: "stdio auto-detect", desc: "stdin → mime detect → typed chunks → ndjson stdout.", cta: "view", href: "https://github.com/AnEntrypoint/floosie/tree/main/docs/examples" }
-    - { name: "ACP agent bridge", desc: "AgentClientProtocol as a stream source/sink.", cta: "view", href: "https://github.com/AnEntrypoint/floosie/blob/main/src/acp.ts" }
-    - { name: "ws mux", desc: "fan-in N websockets into one chunk stream.", cta: "view", href: "https://github.com/AnEntrypoint/floosie/blob/main/src/ws.ts" }
-    - { name: "operators reference", desc: "all 14 operators wired against sflow.", cta: "view", href: "https://github.com/AnEntrypoint/floosie/blob/main/src/operators.ts" }
+    - { name: "stdio auto-detect",   desc: "stdin → mime detect → typed chunks → ndjson stdout.",  cta: "view ↗", href: "https://github.com/AnEntrypoint/floosie/tree/main/docs/examples" }
+    - { name: "ACP agent bridge",    desc: "AgentClientProtocol as a stream source/sink.",          cta: "view ↗", href: "https://github.com/AnEntrypoint/floosie/blob/main/src/acp.ts" }
+    - { name: "websocket mux",       desc: "fan-in N websockets into one chunk stream.",            cta: "view ↗", href: "https://github.com/AnEntrypoint/floosie/blob/main/src/ws.ts" }
+    - { name: "operators reference", desc: "all 14 operators wired against sflow.",                 cta: "view ↗", href: "https://github.com/AnEntrypoint/floosie/blob/main/src/operators.ts" }
+    - { name: "chunk registry",      desc: "the 98-type discriminated union with codecs.",          cta: "view ↗", href: "https://github.com/AnEntrypoint/floosie/blob/main/src/chunk-types.ts" }
+    - { name: "buffer utilities",    desc: "hex/base64/gzip/brotli/hexdump on the byte layer.",     cta: "view ↗", href: "https://github.com/AnEntrypoint/floosie/blob/main/src/buffer.ts" }

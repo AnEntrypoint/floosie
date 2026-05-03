@@ -122,6 +122,135 @@ function Usage() {
   });
 }
 
+const RAIL = { kit:'rail-green', deck:'rail-sun', preview:'rail-purple', doc:'rail-mascot', external:'rail-sky', flame:'rail-flame' };
+const DOT  = { kit:'green', deck:'sun', preview:'purple', doc:'mascot', external:'sky', flame:'flame' };
+
+function Problem() {
+  if (!home || !home.problem || !home.problem.items) return null;
+  const intro = home.problem.intro
+    ? h('p', { style:'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.problem.intro)
+    : null;
+  const rows = home.problem.items.map((it, i) => h('div', {
+    key:'pr'+i,
+    class:'row '+(RAIL[it.cat] || 'rail-flame'),
+    style:'display:flex;align-items:flex-start;gap:14px;padding:12px 22px;margin:0 14px;border-radius:14px;background:var(--panel-2);margin-bottom:8px'
+  },
+    h('span', { style:'font-family:var(--ff-mono);font-size:1.1rem;line-height:1.2;color:var(--flame,#FF6B4A);flex:0 0 auto' }, it.glyph || '◌'),
+    h('div', { style:'flex:1' },
+      h('div', { style:'font-weight:600;font-size:0.95rem;margin-bottom:2px' }, it.name),
+      h('div', { style:'color:var(--panel-text-2);font-size:0.88rem;line-height:1.5' }, it.desc)
+    )
+  ));
+  return C.Panel({ title: home.problem.heading || 'the problem', style:'margin:8px',
+    children: h('div', {}, intro, h('div', { style:'height:14px' }), ...rows, h('div', { style:'height:8px' }))
+  });
+}
+
+function Compare() {
+  if (!home || !home.compare || !home.compare.before || !home.compare.after) return null;
+  const intro = home.compare.intro
+    ? h('p', { style:'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.compare.intro)
+    : null;
+  const codeBlock = (label, code, accent) => h('div', { style:'flex:1;min-width:280px;padding:12px' },
+    h('div', { style:'font-family:var(--ff-mono);font-size:0.78rem;letter-spacing:0.06em;text-transform:uppercase;color:'+accent+';margin-bottom:6px' }, label),
+    h('pre', { style:'margin:0;padding:14px 16px;background:var(--panel-2);border-radius:12px;overflow:auto;font-family:var(--ff-mono);font-size:0.8rem;line-height:1.55;color:var(--panel-text);box-shadow:inset 4px 0 0 '+accent }, code)
+  );
+  return C.Panel({ title: home.compare.heading || 'before / after', style:'margin:8px',
+    children: h('div', {}, intro,
+      h('div', { style:'display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px 16px 12px' },
+        codeBlock(home.compare.before.label || 'before', home.compare.before.code, 'var(--flame,#FF6B4A)'),
+        codeBlock(home.compare.after.label  || 'after',  home.compare.after.code,  'var(--green,#3F8A4A)')
+      )
+    )
+  });
+}
+
+function When() {
+  if (!home || !home.when || !home.when.items) return null;
+  const intro = home.when.intro
+    ? h('p', { style:'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.when.intro)
+    : null;
+  const rows = home.when.items.map((it, i) => h('div', {
+    key:'wn'+i,
+    class:'row '+(RAIL[it.cat] || 'rail-green'),
+    style:'display:flex;align-items:center;gap:14px;padding:12px 18px;margin:0 14px 8px 14px;border-radius:14px;background:var(--panel-1)'
+  },
+    h('span', { class:'dot '+(DOT[it.cat] || 'green'), style:'width:10px;height:10px;border-radius:999px;background:currentColor;flex:0 0 auto;color:var(--'+(DOT[it.cat]||'green')+',#3F8A4A)' }),
+    h('div', { style:'flex:1' },
+      h('div', { style:'font-weight:600;font-size:0.95rem;margin-bottom:2px' }, it.name),
+      h('div', { style:'color:var(--panel-text-2);font-size:0.88rem;line-height:1.5' }, it.desc)
+    ),
+    it.meta ? h('span', { style:'font-family:var(--ff-mono);font-size:0.78rem;color:var(--panel-text-3,#888);letter-spacing:0.04em' }, it.meta) : null
+  ));
+  return C.Panel({ title: home.when.heading || 'when to use', style:'margin:8px',
+    children: h('div', {}, intro, h('div', { style:'height:14px' }), ...rows, h('div', { style:'height:8px' }))
+  });
+}
+
+function How() {
+  if (!home || !home.how || !home.how.steps) return null;
+  const intro = home.how.intro
+    ? h('p', { style:'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.how.intro)
+    : null;
+  const steps = home.how.steps.map((s, i) => h('div', {
+    key:'hw'+i,
+    style:'flex:1;min-width:240px;padding:18px 18px;margin:6px;border-radius:16px;background:var(--panel-1);box-shadow:inset 4px 0 0 var(--green,#3F8A4A)'
+  },
+    h('div', { style:'display:flex;align-items:baseline;gap:10px;margin-bottom:8px' },
+      h('span', { style:'font-family:var(--ff-mono);font-size:0.85rem;color:var(--panel-text-3,#888);letter-spacing:0.06em' }, s.rank),
+      h('span', { style:'font-family:var(--ff-mono);font-size:1.15rem;color:var(--green,#3F8A4A)' }, s.glyph || '●'),
+      h('span', { style:'font-weight:700;font-size:1.05rem' }, s.name)
+    ),
+    h('div', { style:'color:var(--panel-text-2);font-size:0.9rem;line-height:1.55' }, s.desc)
+  ));
+  return C.Panel({ title: home.how.heading || 'how it works', style:'margin:8px',
+    children: h('div', {}, intro,
+      h('div', { style:'display:flex;flex-wrap:wrap;padding:8px 8px 14px 8px' }, ...steps)
+    )
+  });
+}
+
+function Recipes() {
+  if (!home || !home.recipes || !home.recipes.items) return null;
+  const intro = home.recipes.intro
+    ? h('p', { style:'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.recipes.intro)
+    : null;
+  const cards = home.recipes.items.map((r, i) => {
+    const accent = 'var(--'+(DOT[r.cat]||'green')+',#3F8A4A)';
+    return h('div', { key:'rc'+i, style:'padding:14px 18px;margin:8px 14px;border-radius:16px;background:var(--panel-1);box-shadow:inset 4px 0 0 '+accent },
+      h('div', { style:'display:flex;align-items:baseline;gap:10px;margin-bottom:4px' },
+        h('span', { class:'dot', style:'width:8px;height:8px;border-radius:999px;background:'+accent+';display:inline-block' }),
+        h('span', { style:'font-weight:700;font-size:0.98rem' }, r.name)
+      ),
+      h('div', { style:'color:var(--panel-text-2);font-size:0.88rem;line-height:1.5;margin-bottom:10px' }, r.desc),
+      h('pre', { style:'margin:0;padding:12px 14px;background:var(--panel-2);border-radius:10px;overflow:auto;font-family:var(--ff-mono);font-size:0.78rem;line-height:1.55;color:var(--panel-text)' }, r.code)
+    );
+  });
+  return C.Panel({ title: home.recipes.heading || 'recipes', style:'margin:8px',
+    children: h('div', {}, intro, h('div', { style:'height:8px' }), ...cards, h('div', { style:'height:8px' }))
+  });
+}
+
+function Audience() {
+  if (!home || !home.audience || !home.audience.items) return null;
+  const intro = home.audience.intro
+    ? h('p', { style:'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.audience.intro)
+    : null;
+  const rows = home.audience.items.map((it, i) => h('div', {
+    key:'au'+i,
+    class:'row '+(RAIL[it.cat] || 'rail-green'),
+    style:'display:flex;align-items:flex-start;gap:14px;padding:14px 18px;margin:0 14px 8px 14px;border-radius:14px;background:var(--panel-1)'
+  },
+    h('div', { style:'flex:1' },
+      h('div', { style:'font-weight:600;font-size:0.95rem;margin-bottom:3px' }, it.name),
+      h('div', { style:'color:var(--panel-text-2);font-size:0.88rem;line-height:1.55' }, it.desc)
+    )
+  ));
+  return C.Panel({ title: home.audience.heading || 'who it is for', style:'margin:8px',
+    children: h('div', {}, intro, h('div', { style:'height:14px' }), ...rows, h('div', { style:'height:8px' }))
+  });
+}
+
 function Examples() {
   if (!home || !home.examples || !home.examples.items || !home.examples.items.length) return null;
   const rows = home.examples.items.map((it, i) => C.RowLink({
@@ -163,11 +292,16 @@ const App = C.AppShell({
   }),
   main: h('div', {},
     Hero(),
-    Features(),
-    Chunks(),
-    Operators(),
+    Problem(),
+    Compare(),
+    When(),
+    How(),
+    Recipes(),
     Quickstart(),
     Usage(),
+    Operators(),
+    Audience(),
+    Chunks(),
     Examples()
   ),
   status: Footer()
