@@ -72,6 +72,56 @@ function Quickstart() {
   });
 }
 
+function Chunks() {
+  if (!home || !home.chunks || !home.chunks.groups || !home.chunks.groups.length) return null;
+  const groups = home.chunks.groups.map((g, gi) => h('div', { key: 'cg' + gi, style: 'padding:14px 22px 6px 22px' },
+    C.Heading({ level: 3, style: 'margin:0 0 8px 0;font-size:0.85rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--panel-text-2)', children: g.heading }),
+    h('div', { style: 'display:flex;flex-wrap:wrap;gap:6px' },
+      ...(g.items || []).map((t, ti) => C.Chip({ key: 'c' + gi + '-' + ti, children: t }))
+    )
+  ));
+  const intro = home.chunks.intro
+    ? h('p', { style: 'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.chunks.intro)
+    : null;
+  return C.Panel({
+    title: home.chunks.heading || 'chunk types',
+    style: 'margin:8px',
+    children: h('div', {}, intro, ...groups, h('div', { style: 'height:14px' }))
+  });
+}
+
+function Operators() {
+  if (!home || !home.operators || !home.operators.items || !home.operators.items.length) return null;
+  const intro = home.operators.intro
+    ? h('p', { style: 'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.operators.intro)
+    : null;
+  const rows = home.operators.items.map((it, i) => C.RowLink({
+    key: 'op' + i,
+    code: String(i + 1).padStart(2, '0'),
+    title: it.name,
+    sub: it.desc || ''
+  }));
+  return C.Panel({
+    title: home.operators.heading || 'operators',
+    style: 'margin:8px',
+    children: h('div', {}, intro, ...rows)
+  });
+}
+
+function Usage() {
+  if (!home || !home.usage || !home.usage.code) return null;
+  const intro = home.usage.intro
+    ? h('p', { style: 'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.usage.intro)
+    : null;
+  return C.Panel({
+    title: home.usage.heading || 'usage',
+    style: 'margin:8px',
+    children: h('div', {}, intro,
+      h('pre', { style: 'margin:14px 22px 18px 22px;padding:14px 16px;background:var(--panel-bg-2,#161b22);border-radius:10px;overflow:auto;font-family:var(--ff-mono,ui-monospace,monospace);font-size:0.85rem;line-height:1.55;color:var(--panel-text)' }, home.usage.code)
+    )
+  });
+}
+
 function Examples() {
   if (!home || !home.examples || !home.examples.items || !home.examples.items.length) return null;
   const rows = home.examples.items.map((it, i) => C.RowLink({
@@ -114,7 +164,10 @@ const App = C.AppShell({
   main: h('div', {},
     Hero(),
     Features(),
+    Chunks(),
+    Operators(),
     Quickstart(),
+    Usage(),
     Examples()
   ),
   status: Footer()
