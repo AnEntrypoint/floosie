@@ -251,6 +251,121 @@ function Audience() {
   });
 }
 
+function Stats() {
+  if (!home || !home.stats || !home.stats.items) return null;
+  const intro = home.stats.intro
+    ? h('p', { style:'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.stats.intro)
+    : null;
+  const cards = home.stats.items.map((s, i) => {
+    const accent = 'var(--'+(DOT[s.cat]||'green')+',#3F8A4A)';
+    return h('div', { key:'st'+i, style:'flex:1;min-width:170px;padding:18px 20px;margin:6px;border-radius:16px;background:var(--panel-1);box-shadow:inset 4px 0 0 '+accent },
+      h('div', { style:'font-family:var(--ff-mono);font-size:2.4rem;line-height:1;font-weight:700;color:'+accent+';letter-spacing:-0.02em' }, s.value),
+      h('div', { style:'margin-top:6px;font-weight:600;font-size:0.92rem' }, s.label),
+      h('div', { style:'margin-top:4px;color:var(--panel-text-2);font-size:0.82rem;line-height:1.45' }, s.desc)
+    );
+  });
+  return C.Panel({ title: home.stats.heading || 'by the numbers', style:'margin:8px',
+    children: h('div', {}, intro,
+      h('div', { style:'display:flex;flex-wrap:wrap;padding:8px 8px 14px 8px' }, ...cards)
+    )
+  });
+}
+
+function Flow() {
+  if (!home || !home.flow || !home.flow.ascii) return null;
+  const intro = home.flow.intro
+    ? h('p', { style:'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.flow.intro)
+    : null;
+  const legend = (home.flow.legend || []).map((l, i) =>
+    h('div', { key:'lg'+i, style:'display:flex;gap:10px;align-items:baseline;padding:6px 0;font-size:0.85rem' },
+      h('span', { style:'font-family:var(--ff-mono);color:var(--green,#3F8A4A);width:14px' }, l.glyph),
+      h('span', { style:'color:var(--panel-text-2)' }, l.text)
+    )
+  );
+  return C.Panel({ title: home.flow.heading || 'how it flows', style:'margin:8px',
+    children: h('div', {}, intro,
+      h('div', { style:'display:flex;flex-wrap:wrap;gap:14px;padding:14px 22px 16px 22px;align-items:flex-start' },
+        h('pre', { style:'flex:1;min-width:320px;margin:0;padding:18px 22px;background:var(--panel-2);border-radius:14px;overflow:auto;font-family:var(--ff-mono);font-size:0.82rem;line-height:1.45;color:var(--panel-text);box-shadow:inset 4px 0 0 var(--green,#3F8A4A)' }, home.flow.ascii),
+        legend.length ? h('div', { style:'flex:0 1 240px;padding:8px 4px' }, ...legend) : null
+      )
+    )
+  });
+}
+
+function Proofs() {
+  if (!home || !home.proofs || !home.proofs.items) return null;
+  const intro = home.proofs.intro
+    ? h('p', { style:'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.proofs.intro)
+    : null;
+  const cards = home.proofs.items.map((p, i) => {
+    const accent = 'var(--'+(DOT[p.cat]||'green')+',#3F8A4A)';
+    return h('div', { key:'pf'+i, style:'flex:1;min-width:240px;padding:16px 18px;margin:6px;border-radius:16px;background:var(--panel-1);box-shadow:inset 4px 0 0 '+accent },
+      h('div', { style:'display:flex;align-items:baseline;gap:10px;margin-bottom:6px' },
+        h('span', { style:'font-family:var(--ff-mono);font-size:1rem;color:'+accent }, p.glyph || '●'),
+        h('span', { style:'font-weight:700;font-size:1rem' }, p.name)
+      ),
+      h('div', { style:'color:var(--panel-text-2);font-size:0.88rem;line-height:1.55' }, p.desc)
+    );
+  });
+  return C.Panel({ title: home.proofs.heading || 'what you get', style:'margin:8px',
+    children: h('div', {}, intro,
+      h('div', { style:'display:flex;flex-wrap:wrap;padding:8px 8px 14px 8px' }, ...cards)
+    )
+  });
+}
+
+function Choose() {
+  if (!home || !home.choose || !home.choose.rows) return null;
+  const intro = home.choose.intro
+    ? h('p', { style:'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.choose.intro)
+    : null;
+  const headerRow = h('div', { key:'ch-h', style:'display:flex;gap:8px;padding:8px 18px;margin:0 14px;border-radius:12px;background:var(--panel-3,#E3DAC7);font-family:var(--ff-mono);font-size:0.78rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--panel-text-2)' },
+    h('span', { style:'flex:2;min-width:180px' }, 'capability'),
+    h('span', { style:'flex:0 0 70px;text-align:center' }, 'floosie'),
+    h('span', { style:'flex:0 0 70px;text-align:center' }, 'rxjs'),
+    h('span', { style:'flex:0 0 70px;text-align:center' }, 'streams'),
+    h('span', { style:'flex:2;min-width:140px' }, 'note')
+  );
+  const cell = (g) => {
+    const color = g === '●' ? 'var(--green,#3F8A4A)' : g === '◐' ? 'var(--sun,#FFD86B)' : 'var(--panel-text-3,#888)';
+    return h('span', { style:'flex:0 0 70px;text-align:center;font-family:var(--ff-mono);font-size:1.05rem;color:'+color }, g);
+  };
+  const rows = home.choose.rows.map((r, i) => h('div', { key:'ch'+i,
+    style:'display:flex;gap:8px;align-items:center;padding:10px 18px;margin:4px 14px;border-radius:12px;background:'+(i%2?'var(--panel-2)':'var(--panel-1)')
+  },
+    h('span', { style:'flex:2;min-width:180px;font-size:0.9rem' }, r.what),
+    cell(r.floosie), cell(r.rxjs), cell(r.streams),
+    h('span', { style:'flex:2;min-width:140px;font-family:var(--ff-mono);font-size:0.78rem;color:var(--panel-text-2)' }, r.note || '')
+  ));
+  const legend = (home.choose.legend || []).map((l, i) =>
+    h('span', { key:'cl'+i, style:'display:inline-flex;gap:6px;align-items:baseline;margin-right:18px;font-size:0.82rem;color:var(--panel-text-2)' },
+      h('span', { style:'font-family:var(--ff-mono);color:var(--green,#3F8A4A)' }, l.glyph),
+      h('span', {}, l.text)
+    )
+  );
+  return C.Panel({ title: home.choose.heading || 'pick your stack', style:'margin:8px',
+    children: h('div', {}, intro, h('div', { style:'height:12px' }), headerRow, ...rows,
+      legend.length ? h('div', { style:'padding:14px 22px 16px 22px' }, ...legend) : null
+    )
+  });
+}
+
+function Glossary() {
+  if (!home || !home.glossary || !home.glossary.items) return null;
+  const intro = home.glossary.intro
+    ? h('p', { style:'padding:16px 22px 0 22px;margin:0;color:var(--panel-text-2);max-width:72ch' }, home.glossary.intro)
+    : null;
+  const rows = home.glossary.items.map((g, i) => h('div', { key:'gl'+i,
+    style:'display:flex;flex-wrap:wrap;gap:18px;align-items:baseline;padding:14px 22px;margin:0 14px 8px 14px;border-radius:14px;background:var(--panel-1);box-shadow:inset 4px 0 0 var(--mascot,#F07AA8)'
+  },
+    h('span', { style:'flex:0 0 110px;font-family:var(--ff-mono);font-size:0.95rem;font-weight:700;color:var(--mascot,#F07AA8)' }, g.term),
+    h('span', { style:'flex:1;min-width:240px;color:var(--panel-text-2);font-size:0.9rem;line-height:1.55' }, g.def)
+  ));
+  return C.Panel({ title: home.glossary.heading || 'glossary', style:'margin:8px',
+    children: h('div', {}, intro, h('div', { style:'height:12px' }), ...rows, h('div', { style:'height:8px' }))
+  });
+}
+
 function Examples() {
   if (!home || !home.examples || !home.examples.items || !home.examples.items.length) return null;
   const rows = home.examples.items.map((it, i) => C.RowLink({
@@ -292,15 +407,20 @@ const App = C.AppShell({
   }),
   main: h('div', {},
     Hero(),
+    Stats(),
     Problem(),
     Compare(),
-    When(),
+    Flow(),
     How(),
+    When(),
     Recipes(),
     Quickstart(),
     Usage(),
     Operators(),
+    Proofs(),
+    Choose(),
     Audience(),
+    Glossary(),
     Chunks(),
     Examples()
   ),

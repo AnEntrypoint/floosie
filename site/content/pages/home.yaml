@@ -10,11 +10,49 @@ hero:
     - { label: "ESM · TypeScript" }
     - { label: "ACP · stdio · ws" }
     - { label: "0 dep glue" }
+    - { label: "1 mental model" }
   ctas:
     - { label: "GitHub", href: "https://github.com/AnEntrypoint/floosie", primary: true }
     - { label: "npm i floosie", href: "https://www.npmjs.com/package/floosie" }
     - { label: "docs", href: "https://github.com/AnEntrypoint/floosie#readme" }
     - { label: "247420", href: "https://247420.xyz" }
+
+stats:
+  heading: "by the numbers"
+  intro: "the surface area, in four digits."
+  items:
+    - { value: "98", label: "chunk types", desc: "media, text, network, ml, crypto, scalars",      cat: "kit" }
+    - { value: "14", label: "operators",   desc: "mux split gate scan zip batch window throttle …", cat: "deck" }
+    - { value: "183", label: "mimes detected", desc: "via file-type magic-byte lookup",             cat: "preview" }
+    - { value: "0",  label: "glue code",   desc: "framing autoselected by chunk type",              cat: "doc" }
+
+flow:
+  heading: "anatomy of a pipeline"
+  intro: "every floosie pipeline is the same shape. read top-to-bottom; the bytes flow the same way."
+  ascii: |
+       ┌──────────────┐
+       │   source     │   stdin · ws · acp · file · iter
+       └──────┬───────┘
+              ▼
+       ┌──────────────┐
+       │ typed chunk  │   { type, data, meta:{mime} }
+       └──────┬───────┘   ◌ 98 variants · auto-detected
+              ▼
+       ┌──────────────┐
+       │  transform   │   .through(gate · parallel · scan · …)
+       └──────┬───────┘   ◌ 14 operators · sflow under the hood
+              ▼
+       ┌──────────────┐
+       │ processor    │   { name, status, chunksIn, chunksOut }
+       └──────┬───────┘   ◌ idle → running → error|stopped
+              ▼
+       ┌──────────────┐
+       │    sink      │   ndjson · ws · acp · file · iter
+       └──────────────┘
+  legend:
+    - { glyph: "◌", text: "every stage is observed by the registry" }
+    - { glyph: "●", text: "framing chosen by chunk.type — you never write a parser" }
+    - { glyph: "↗", text: "swap source or sink without touching transform" }
 
 problem:
   heading: "the pain you already know"
@@ -130,6 +168,31 @@ audience:
     - { cat: "deck",    name: "you do byte-level work", desc: "media transcoders, protocol bridges, telemetry routers. you spend more time on framing than logic. stop." }
     - { cat: "preview", name: "you want one mental model", desc: "if you've written 'this is the third time i've reframed ndjson', the third time should be an import, not a parser." }
 
+proofs:
+  heading: "three things you get for free"
+  intro: "the boring stuff that ate your last sprint."
+  items:
+    - { glyph: "●", cat: "kit",     name: "typed end-to-end", desc: "every value carries its type at runtime. discriminated-union narrowing means no `as any` cast survives a code review." }
+    - { glyph: "●", cat: "deck",    name: "mime detection",   desc: "binary in → file-type magic-byte lookup → mimeToChunkType() → variant selected. you wrote zero of those lines." }
+    - { glyph: "●", cat: "preview", name: "observed by default", desc: "registry tracks every processor — chunksIn, chunksOut, errors, uptimeMs. setLogSink() forwards to your stack." }
+
+choose:
+  heading: "pick your stack"
+  intro: "honest comparison. floosie is not always the answer."
+  rows:
+    - { what: "typed chunk discriminated union",    floosie: "●", rxjs: "○", streams: "○", note: "98 variants, mime-aware" }
+    - { what: "auto framing on stdin/ws/acp",        floosie: "●", rxjs: "○", streams: "○", note: "framing chosen by type" }
+    - { what: "operator algebra",                    floosie: "●", rxjs: "●", streams: "◐", note: "sflow under the hood" }
+    - { what: "AsyncIterable interop",               floosie: "●", rxjs: "◐", streams: "●", note: "ReadableStream + AsyncIterable in one" }
+    - { what: "back-pressure",                       floosie: "●", rxjs: "◐", streams: "●", note: "withBackpressure(hwm)" }
+    - { what: "registry / observability",            floosie: "●", rxjs: "○", streams: "○", note: "out of the box" }
+    - { what: "browser/node parity",                 floosie: "●", rxjs: "●", streams: "●", note: "esm, no node-only deps in core" }
+    - { what: "small surface (no lifecycle gymnastics)", floosie: "●", rxjs: "○", streams: "●", note: "4-state actor, no schedulers" }
+  legend:
+    - { glyph: "●", text: "first-class" }
+    - { glyph: "◐", text: "possible with effort" }
+    - { glyph: "○", text: "you'd have to build it" }
+
 operators:
   heading: "operators"
   intro: "all 14 are typed StreamNode factories. compose with pipe() / .through(). nothing else to learn."
@@ -198,6 +261,15 @@ usage:
           .through(parallel(classify, 4))
           .through(gate(c => c.data.label !== "spam"))
     });
+
+glossary:
+  heading: "vocab — the four words that matter"
+  intro: "if you know these, you know floosie."
+  items:
+    - { term: "chunk",     def: "{ type, data, meta }. the atomic value in any flow. 98 built-in types; type narrows data." }
+    - { term: "codec",     def: "encode/decode pair per chunk type. encodeChunk(c) → bytes, decodeChunk(type, bytes) → c. mime auto-populated on binary." }
+    - { term: "processor", def: "createProcessor({ name, input, transform, output }). the actor. lifecycle is idle → running → error | stopped." }
+    - { term: "operator",  def: "a typed StreamNode factory you fuse with .through(). 14 of them. mux, gate, parallel, batch — that family." }
 
 examples:
   heading: "go deeper"
