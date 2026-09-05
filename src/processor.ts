@@ -93,6 +93,7 @@ export function createProcessor<I extends Chunk, O extends Chunk>(
       if (state.status === "running") return;
       state.send({ type: "START" });
       state.send({ type: "START_AT", ts: Date.now() });
+      split?.cancel();
       split = buildSplit();
       try {
         await drainToWritable(split.stdout as AsyncIterable<Chunk>, config.output);
@@ -105,6 +106,10 @@ export function createProcessor<I extends Chunk, O extends Chunk>(
 
     stop(): void {
       state.send({ type: "STOP" });
+      // Dropping the reference alone left the previous split's pump reading
+      // from the input for as long as the input had chunks, so a stopped
+      // processor kept consuming its source.
+      split?.cancel();
       split = null;
     },
 

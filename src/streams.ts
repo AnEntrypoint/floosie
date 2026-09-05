@@ -4,6 +4,8 @@ import type { ErrorChunk, SignalChunk } from "./chunk-aliases.js";
 export type StreamSplit<O extends Chunk> = {
   stdout: AsyncIterable<O>;
   stderr: AsyncIterable<ErrorChunk | SignalChunk>;
+  /** Stops pumping the source and ends both halves. Idempotent. */
+  cancel(): void;
 };
 
 type Wake = (() => void) | null;
@@ -23,29 +25,51 @@ export function splitStream<O extends Chunk>(
   const stdoutWake: { v: Wake } = { v: null };
   const stderrWake: { v: Wake } = { v: null };
   let done = false;
+  let failure: { err: unknown } | null = null;
+  let cancelled = false;
 
-  (async () => {
-    for await (const chunk of iter) {
-      if (onOut) onOut();
-      if (chunk.type === "error" || chunk.type === "signal") {
-        stderrQueue.push(chunk as unknown as ErrorChunk | SignalChunk);
-        notify(stderrWake);
-      } else {
-        stdoutQueue.push(chunk);
-        notify(stdoutWake);
-      }
-    }
+  const finish = (err?: unknown): void => {
+    if (err !== undefined) failure = { err };
     done = true;
     notify(stdoutWake);
     notify(stderrWake);
+  };
+
+  // A source that throws has to reach whoever is reading the split. Left
+  // unhandled it did two bad things at once: both halves waited forever for a
+  // `done` that would never be set, and the rejection escaped this promise to
+  // the process, where Node's default handling terminates it -- so a library
+  // consumer could neither catch the failure nor survive it. createAsyncQueue,
+  // in this same file, already gets this right; this now matches it.
+  void (async () => {
+    try {
+      for await (const chunk of iter) {
+        if (cancelled) break;
+        if (onOut) onOut();
+        if (chunk.type === "error" || chunk.type === "signal") {
+          stderrQueue.push(chunk as unknown as ErrorChunk | SignalChunk);
+          notify(stderrWake);
+        } else {
+          stdoutQueue.push(chunk);
+          notify(stdoutWake);
+        }
+      }
+      finish();
+    } catch (err) {
+      finish(err);
+    }
   })();
 
+  // Chunks already read are delivered before the failure surfaces: they really
+  // did arrive, and discarding them would lose the output that explains how far
+  // the source got.
   async function* drain<T>(queue: T[], wake: { v: Wake }): AsyncIterable<T> {
     let idx = 0;
     while (true) {
       if (idx < queue.length) {
         yield queue[idx++]!;
       } else if (done) {
+        if (failure) throw failure.err;
         return;
       } else {
         if (idx > 0) { queue.splice(0, idx); idx = 0; }
@@ -57,6 +81,11 @@ export function splitStream<O extends Chunk>(
   return {
     stdout: drain(stdoutQueue, stdoutWake),
     stderr: drain(stderrQueue, stderrWake),
+    cancel() {
+      if (cancelled) return;
+      cancelled = true;
+      finish();
+    },
   };
 }
 

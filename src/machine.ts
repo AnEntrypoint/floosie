@@ -14,11 +14,16 @@ export type ProcessorEvent =
   | { type: "COMPLETE" }
   | { type: "RESET" };
 
+// STOP is accepted from idle so an intent to stop before anything started is
+// not silently discarded, and START is accepted from stopped so a stopped
+// processor can be restarted rather than becoming permanently inert while its
+// handle still exposes start(). ERROR self-transitions so a second failure is
+// still an observed failure.
 const TRANSITIONS: Record<ProcessorStatus, Partial<Record<ProcessorEvent["type"], ProcessorStatus>>> = {
-  idle:    { START: "running" },
+  idle:    { START: "running", STOP: "stopped" },
   running: { STOP: "stopped", ERROR: "error", COMPLETE: "idle" },
-  error:   { RESET: "idle", STOP: "stopped" },
-  stopped: {},
+  error:   { RESET: "idle", STOP: "stopped", ERROR: "error", START: "running" },
+  stopped: { START: "running", RESET: "idle" },
 };
 
 export type ProcessorActor = {
@@ -34,13 +39,16 @@ export function createProcessorActor(name: string): ProcessorActor {
     context: { name, errors: [], startedAt: null },
     send(event) {
       if (event.type === "START_AT") { actor.context.startedAt = event.ts; return; }
+      // Recorded before the transition is consulted: a failure that arrives in
+      // a state with nowhere to go is still a failure that happened, and
+      // dropping its message leaves `errors` reporting only the first one.
+      if (event.type === "ERROR") actor.context.errors.push(event.message);
       const next = TRANSITIONS[actor.status][event.type];
       if (!next) return;
-      if (event.type === "ERROR") actor.context.errors.push(event.message);
       if (event.type === "COMPLETE") actor.context.startedAt = null;
       actor.status = next;
     },
-    stop() { actor.status = "stopped"; },
+    stop() { actor.send({ type: "STOP" }); },
   };
   return actor;
 }

@@ -44,10 +44,18 @@ export function zip<T extends Chunk>(...sources: AsyncIterable<T>[]): StreamNode
   return createNode("zip", (_flow) =>
     sflow(async function*() {
       const iters = sources.map((s) => s[Symbol.asyncIterator]());
-      while (true) {
-        const nexts = await Promise.all(iters.map((it) => it.next()));
-        if (nexts.some((n) => n.done)) break;
-        yield nexts.map((n) => n.value) as unknown as T;
+      try {
+        while (true) {
+          const nexts = await Promise.all(iters.map((it) => it.next()));
+          if (nexts.some((n) => n.done)) break;
+          yield nexts.map((n) => n.value) as unknown as T;
+        }
+      } finally {
+        // zip ends when its SHORTEST source does, which leaves every longer
+        // source mid-iteration. Without this their `finally` blocks never run,
+        // so whatever they hold open -- a file handle, a socket, a subprocess --
+        // stays open for the life of the process.
+        await Promise.allSettled(iters.map((it) => it.return?.(undefined)));
       }
     }())
   );
