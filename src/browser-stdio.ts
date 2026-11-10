@@ -56,7 +56,8 @@ export function createBrowserStdio(config: BrowserStdioConfig = { name: "browser
       const target = meta.target ?? params.name;
       const parts = typeof target === "string" ? target.split("_") : [];
       const handler = (typeof target === "string" ? endpoints.get(target) : undefined)
-        ?? (parts.length ? endpoints.get(parts[0]!) : undefined);
+        ?? (parts.length ? endpoints.get(parts[0]!) : undefined)
+        ?? endpoints.get("*");
       if (!handler) {
         answers.push(JSON.stringify({ jsonrpc: "2.0", id: record.id ?? null, error: { code: -32601, message: `no endpoint for ${String(target ?? "request")}` } }));
         continue;
