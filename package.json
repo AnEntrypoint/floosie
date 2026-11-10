@@ -2,7 +2,7 @@
   "name": "floosie",
   "version": "0.7.7",
   "type": "module",
-  "description": "Universal stream processing platform — pipe anything to anything",
+  "description": "Universal stream processing platform \u2014 pipe anything to anything",
   "exports": {
     ".": "./dist/index.js",
     "./acp": "./dist/acp.js",
@@ -13,7 +13,8 @@
     "./file": "./dist/file.js",
     "./ws": "./dist/ws.js",
     "./cli": "./dist/cli.js",
-    "./auto": "./dist/auto.js"
+    "./auto": "./dist/auto.js",
+    "./browser": "./dist/browser.js"
   },
   "types": "./dist/index.d.ts",
   "bin": {
@@ -27,7 +28,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "node test.js",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "build:browser": "node scripts/build-browser.mjs"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.19.0",

@@ -1,4 +1,3 @@
-import { fileTypeFromBuffer } from "file-type";
 import type { ChunkType } from "./chunk-types.js";
 
 export type FileInfo = {
@@ -43,10 +42,17 @@ export async function detectFile(data: Uint8Array): Promise<FileInfo> {
   if (data.length >= 2 && data[0] === 0xfe && data[1] === 0xff) {
     return { mime: "text/plain", ext: "txt", charset: "utf-16be", description: "utf-16be text" };
   }
-  const r = await fileTypeFromBuffer(data);
-  if (r) return { mime: r.mime, ext: r.ext };
+  if (typeof process !== "undefined" && process.versions?.node) {
+    try {
+      const spec = "file-type";
+      const { fileTypeFromBuffer } = await import(/* @vite-ignore */ spec);
+      const r = await fileTypeFromBuffer(data);
+      if (r) return { mime: r.mime, ext: r.ext };
+    } catch {}
+  }
   const mime = detectMime(data);
-  return mime === "application/octet-stream" ? { mime } : { mime, ext: "txt" };
+  const ext = MIME_TO_TYPE[mime] ?? undefined;
+  return mime === "application/octet-stream" ? { mime } : { mime, ext: ext ?? "txt" };
 }
 
 export const MIME_TO_TYPE: Record<string, ChunkType> = {

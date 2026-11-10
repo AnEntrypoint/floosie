@@ -8,6 +8,24 @@ Built on [sflow](https://www.npmjs.com/package/sflow) with a 98-type chunk model
 npm install floosie
 ```
 
+## Browser
+
+`floosie/browser` is a bare ES module bundle with no `node:` imports. It exports the chunks, codecs, processors, operators, registry and debug surface, plus `createBrowserStdio`, which routes newline-framed `rpc` chunks to named endpoints.
+
+```sh
+npm run build:browser
+```
+
+```js
+import { createBrowserStdio } from "floosie/browser";
+
+const stdio = createBrowserStdio({ name: "my-app" });
+stdio.attach("echo", (message) => ({ jsonrpc: "2.0", id: message.id, result: message.params }));
+const answer = await stdio.input(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "echo" } }));
+```
+
+`createBrowserStdio({ stream: true })` also starts a floosie processor over the input stream. Node-only modules (`floosie/file`, `floosie/cli`, `floosie/buffer`, `floosie/stdio`) stay Node-only. `detectFile` uses `file-type` in Node and its built-in signature table in the browser.
+
 ## Quick start
 
 ```ts
