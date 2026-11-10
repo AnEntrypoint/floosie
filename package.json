@@ -1,8 +1,8 @@
 {
   "name": "floosie",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "type": "module",
-  "description": "Universal stream processing platform \u2014 pipe anything to anything",
+  "description": "Universal stream processing platform — pipe anything to anything",
   "exports": {
     ".": "./dist/index.js",
     "./acp": "./dist/acp.js",
